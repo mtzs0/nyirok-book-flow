@@ -1,7 +1,6 @@
-
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Calendar, Clock, MapPin, User, Stethoscope, CreditCard, CheckCircle, ChevronRight, ChevronLeft } from 'lucide-react';
+import { Calendar, Clock, MapPin, User, Stethoscope, CreditCard, CheckCircle, ChevronRight, ChevronLeft, Mail, Phone } from 'lucide-react';
 
 interface Location {
   id: string;
@@ -43,6 +42,8 @@ interface FormData {
   service: Service | null;
   personalData: {
     fullName: string;
+    email: string;
+    phone: string;
   };
 }
 
@@ -80,7 +81,7 @@ export default function ReservationSystem() {
     time: '',
     therapist: null,
     service: null,
-    personalData: { fullName: '' }
+    personalData: { fullName: '', email: '', phone: '' }
   });
 
   const [locations, setLocations] = useState<Location[]>([]);
@@ -239,7 +240,9 @@ export default function ReservationSystem() {
       case 4: return formData.time !== '';
       case 5: return formData.therapist !== null;
       case 6: return formData.service !== null;
-      case 7: return formData.personalData.fullName.trim() !== '';
+      case 7: return formData.personalData.fullName.trim() !== '' && 
+                     formData.personalData.email.trim() !== '' && 
+                     formData.personalData.phone.trim() !== '';
       default: return false;
     }
   };
@@ -251,8 +254,8 @@ export default function ReservationSystem() {
     
     const reservationData = {
       name: formData.personalData.fullName,
-      email: '', // Will be added later
-      phone: '', // Will be added later
+      email: formData.personalData.email,
+      phone: formData.personalData.phone,
       date: formData.date,
       time: formData.time,
       location: formData.location.name,
@@ -278,7 +281,7 @@ export default function ReservationSystem() {
         time: '',
         therapist: null,
         service: null,
-        personalData: { fullName: '' }
+        personalData: { fullName: '', email: '', phone: '' }
       });
       setCurrentStep(1);
     } else {
@@ -513,20 +516,58 @@ export default function ReservationSystem() {
               <h2 className="text-2xl font-bold text-slate-800 mb-2">Személyes adatok</h2>
               <p className="text-slate-600">Kérjük, adja meg az alábbi adatokat</p>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Teljes név *
-              </label>
-              <input
-                type="text"
-                className="medical-input"
-                placeholder="Adja meg a teljes nevét"
-                value={formData.personalData.fullName}
-                onChange={(e) => setFormData(prev => ({
-                  ...prev,
-                  personalData: { ...prev.personalData, fullName: e.target.value }
-                }))}
-              />
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Teljes név *
+                </label>
+                <input
+                  type="text"
+                  className="medical-input"
+                  placeholder="Adja meg a teljes nevét"
+                  value={formData.personalData.fullName}
+                  onChange={(e) => setFormData(prev => ({
+                    ...prev,
+                    personalData: { ...prev.personalData, fullName: e.target.value }
+                  }))}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  E-mail cím *
+                </label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" size={16} />
+                  <input
+                    type="email"
+                    className="medical-input pl-10"
+                    placeholder="pelda@email.hu"
+                    value={formData.personalData.email}
+                    onChange={(e) => setFormData(prev => ({
+                      ...prev,
+                      personalData: { ...prev.personalData, email: e.target.value }
+                    }))}
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Telefonszám *
+                </label>
+                <div className="relative">
+                  <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" size={16} />
+                  <input
+                    type="tel"
+                    className="medical-input pl-10"
+                    placeholder="+36 30 123 4567"
+                    value={formData.personalData.phone}
+                    onChange={(e) => setFormData(prev => ({
+                      ...prev,
+                      personalData: { ...prev.personalData, phone: e.target.value }
+                    }))}
+                  />
+                </div>
+              </div>
             </div>
           </div>
         );
@@ -563,6 +604,8 @@ export default function ReservationSystem() {
                 <div className="md:col-span-2">
                   <h4 className="font-medium text-slate-700 mb-2">Személyes adatok</h4>
                   <p className="text-slate-900">{formData.personalData.fullName}</p>
+                  <p className="text-slate-600 text-sm">{formData.personalData.email}</p>
+                  <p className="text-slate-600 text-sm">{formData.personalData.phone}</p>
                 </div>
               </div>
             </div>
