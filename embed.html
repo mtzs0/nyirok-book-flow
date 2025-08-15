@@ -1,0 +1,792 @@
+
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Időpontfoglalás</title>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@supabase/supabase-js@2.55.0/dist/umd/supabase.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, rgb(239 246 255) 0%, rgb(248 250 252) 100%);
+            color: rgb(30 41 59);
+        }
+
+        .medical-container {
+            background: white;
+            border-radius: 1rem;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            border: 1px solid rgb(226 232 240);
+            max-width: 64rem;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .medical-step-indicator {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 2rem;
+            height: 2rem;
+            border-radius: 50%;
+            font-size: 0.875rem;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .medical-step-active {
+            background-color: rgb(37 99 235);
+            color: white;
+        }
+
+        .medical-step-completed {
+            background-color: rgb(34 197 94);
+            color: white;
+        }
+
+        .medical-step-pending {
+            background-color: rgb(226 232 240);
+            color: rgb(100 116 139);
+        }
+
+        .medical-option-card {
+            padding: 1rem;
+            border: 2px solid rgb(226 232 240);
+            border-radius: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 0.75rem;
+        }
+
+        .medical-option-card:hover {
+            border-color: rgb(147 197 253);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .medical-option-selected {
+            border-color: rgb(59 130 246);
+            background-color: rgb(239 246 255);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .medical-option-disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .medical-option-disabled:hover {
+            border-color: rgb(226 232 240);
+            box-shadow: none;
+        }
+
+        .medical-button-primary {
+            background-color: rgb(37 99 235);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.75rem;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .medical-button-primary:hover:not(:disabled) {
+            background-color: rgb(29 78 216);
+        }
+
+        .medical-button-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .medical-button-secondary {
+            background-color: rgb(248 250 252);
+            color: rgb(51 65 85);
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.75rem;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .medical-button-secondary:hover:not(:disabled) {
+            background-color: rgb(226 232 240);
+        }
+
+        .medical-input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 1px solid rgb(203 213 225);
+            border-radius: 0.75rem;
+            font-size: 1rem;
+            transition: all 0.2s;
+        }
+
+        .medical-input:focus {
+            outline: none;
+            border-color: rgb(59 130 246);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .medical-progress-bar {
+            height: 0.5rem;
+            background-color: rgb(226 232 240);
+            border-radius: 0.25rem;
+            overflow: hidden;
+            margin-bottom: 2rem;
+        }
+
+        .medical-progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, rgb(59 130 246) 0%, rgb(37 99 235) 100%);
+            transition: all 0.5s ease-out;
+        }
+
+        .step-grid {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .step-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            flex: 1;
+        }
+
+        .step-title {
+            font-size: 0.75rem;
+            margin-top: 0.5rem;
+            text-align: center;
+            max-width: 4rem;
+        }
+
+        .content-area {
+            min-height: 24rem;
+            margin-bottom: 2rem;
+        }
+
+        .navigation-area {
+            display: flex;
+            justify-content: space-between;
+            padding-top: 1.5rem;
+            border-top: 1px solid rgb(226 232 240);
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.75rem;
+        }
+
+        .summary-grid {
+            background-color: rgb(248 250 252);
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+        }
+
+        .summary-item h4 {
+            font-weight: 500;
+            color: rgb(51 65 85);
+            margin-bottom: 0.5rem;
+        }
+
+        .summary-item p {
+            color: rgb(15 23 42);
+            margin-bottom: 0.25rem;
+        }
+
+        .summary-item .secondary {
+            color: rgb(100 116 139);
+            font-size: 0.875rem;
+        }
+
+        @media (max-width: 768px) {
+            .medical-container {
+                padding: 1rem;
+            }
+            
+            .grid-3 {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .summary-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="reservation-root"></div>
+
+    <script>
+        const { useState, useEffect, createElement: h } = React;
+        const { createClient } = supabase;
+
+        // Initialize Supabase client
+        const supabaseClient = createClient(
+            'https://aispzwadwdikqmtpmqii.supabase.co',
+            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFpc3B6d2Fkd2Rpa3FtdHBtcWlpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM2MjUwODYsImV4cCI6MjA2OTIwMTA4Nn0.OAziuXL-MAV60ZvrbD_77SmIttcbE113zKjwYsZ-0yE'
+        );
+
+        const STATEMENTS = [
+            "Szív problémám vagy pacemakerem van",
+            "Nem rég műtöttek vagy csonkolásos műtéten estem át", 
+            "Nyílt vagy fekélyes sebem van",
+            "Sztómával rendelkezem",
+            "Kiskorú gyerek kezelését igénylem",
+            "A fentiek közül egyik sem érvényes rám nézve"
+        ];
+
+        const TIME_SLOTS = [
+            "08:00", "09:00", "10:00", "11:00", "12:00", 
+            "13:00", "14:00", "15:00", "16:00", "17:00"
+        ];
+
+        const STEPS = [
+            { id: 1, title: "Nyilatkozat" },
+            { id: 2, title: "Helyszín" },
+            { id: 3, title: "Dátum" },
+            { id: 4, title: "Időpont" },
+            { id: 5, title: "Terapeuta" },
+            { id: 6, title: "Szolgáltatás" },
+            { id: 7, title: "Adatok" },
+            { id: 8, title: "Összegzés" }
+        ];
+
+        function ReservationSystem() {
+            const [currentStep, setCurrentStep] = useState(1);
+            const [formData, setFormData] = useState({
+                statements: [],
+                location: null,
+                date: '',
+                time: '',
+                therapist: null,
+                service: null,
+                personalData: { fullName: '' }
+            });
+
+            const [locations, setLocations] = useState([]);
+            const [personnel, setPersonnel] = useState([]);
+            const [services, setServices] = useState([]);
+            const [reservations, setReservations] = useState([]);
+            const [availableTimeSlots, setAvailableTimeSlots] = useState([]);
+            const [loading, setLoading] = useState(false);
+
+            // Load initial data
+            useEffect(() => {
+                loadLocations();
+                loadPersonnel();
+                loadServices();
+            }, []);
+
+            // Load reservations when date changes
+            useEffect(() => {
+                if (formData.date) {
+                    loadReservations();
+                }
+            }, [formData.date]);
+
+            // Calculate available time slots
+            useEffect(() => {
+                if (formData.location && formData.date) {
+                    calculateAvailableTimeSlots();
+                }
+            }, [formData.location, formData.date, personnel, reservations]);
+
+            const loadLocations = async () => {
+                const { data, error } = await supabaseClient
+                    .from('nyirok_locations')
+                    .select('*');
+                
+                if (data && !error) {
+                    setLocations(data);
+                }
+            };
+
+            const loadPersonnel = async () => {
+                const { data, error } = await supabaseClient
+                    .from('nyirok_personnel')
+                    .select('*');
+                
+                if (data && !error) {
+                    setPersonnel(data);
+                }
+            };
+
+            const loadServices = async () => {
+                const { data, error } = await supabaseClient
+                    .from('nyirok_services')
+                    .select('*');
+                
+                if (data && !error) {
+                    setServices(data);
+                }
+            };
+
+            const loadReservations = async () => {
+                const { data, error } = await supabaseClient
+                    .from('nyirok_reservations')
+                    .select('*')
+                    .eq('date', formData.date);
+                
+                if (data && !error) {
+                    setReservations(data);
+                }
+            };
+
+            const requiresExpert = () => {
+                return !formData.statements.includes("A fentiek közül egyik sem érvényes rám nézve");
+            };
+
+            const getAvailableTherapists = () => {
+                if (!formData.location) return [];
+                
+                return personnel.filter(p => {
+                    if (p.location_id !== formData.location?.id) return false;
+                    if (requiresExpert() && !p.expert) return false;
+                    return true;
+                });
+            };
+
+            const calculateAvailableTimeSlots = () => {
+                const availableTherapists = getAvailableTherapists();
+                const available = [];
+
+                TIME_SLOTS.forEach(timeSlot => {
+                    const hasAvailableTherapist = availableTherapists.some(therapist => {
+                        return !reservations.some(reservation => 
+                            reservation.therapist_link === therapist.id && 
+                            reservation.time === timeSlot
+                        );
+                    });
+
+                    if (hasAvailableTherapist) {
+                        available.push(timeSlot);
+                    }
+                });
+
+                setAvailableTimeSlots(available);
+            };
+
+            const getAvailableTherapistsForTimeSlot = () => {
+                if (!formData.time) return [];
+                
+                const availableTherapists = getAvailableTherapists();
+                
+                return availableTherapists.filter(therapist => {
+                    return !reservations.some(reservation => 
+                        reservation.therapist_link === therapist.id && 
+                        reservation.time === formData.time
+                    );
+                });
+            };
+
+            const handleStatementChange = (statement) => {
+                const isLastStatement = statement === "A fentiek közül egyik sem érvényes rám nézve";
+                
+                if (isLastStatement) {
+                    setFormData(prev => ({ ...prev, statements: [statement] }));
+                } else {
+                    setFormData(prev => ({
+                        ...prev,
+                        statements: prev.statements.includes(statement)
+                            ? prev.statements.filter(s => s !== statement && s !== "A fentiek közül egyik sem érvényes rám nézve")
+                            : [...prev.statements.filter(s => s !== "A fentiek közül egyik sem érvényes rám nézve"), statement]
+                    }));
+                }
+            };
+
+            const handleNext = () => {
+                if (currentStep < 8) {
+                    setCurrentStep(prev => prev + 1);
+                }
+            };
+
+            const handleBack = () => {
+                if (currentStep > 1) {
+                    setCurrentStep(prev => prev - 1);
+                }
+            };
+
+            const canProceed = () => {
+                switch (currentStep) {
+                    case 1: return formData.statements.length > 0;
+                    case 2: return formData.location !== null;
+                    case 3: return formData.date !== '';
+                    case 4: return formData.time !== '';
+                    case 5: return formData.therapist !== null;
+                    case 6: return formData.service !== null;
+                    case 7: return formData.personalData.fullName.trim() !== '';
+                    default: return false;
+                }
+            };
+
+            const handleSubmit = async () => {
+                if (!formData.therapist || !formData.service || !formData.location) return;
+                
+                setLoading(true);
+                
+                const reservationData = {
+                    name: formData.personalData.fullName,
+                    email: '',
+                    phone: '',
+                    date: formData.date,
+                    time: formData.time,
+                    location: formData.location.name,
+                    therapist: formData.therapist.name,
+                    therapist_link: formData.therapist.id,
+                    service: formData.service.name,
+                    notes: `Statements: ${formData.statements.join(', ')}`
+                };
+
+                const { error } = await supabaseClient
+                    .from('nyirok_reservations')
+                    .insert([reservationData]);
+
+                setLoading(false);
+
+                if (!error) {
+                    alert('Foglalás sikeresen létrehozva!');
+                    setFormData({
+                        statements: [],
+                        location: null,
+                        date: '',
+                        time: '',
+                        therapist: null,
+                        service: null,
+                        personalData: { fullName: '' }
+                    });
+                    setCurrentStep(1);
+                } else {
+                    alert('Hiba történt a foglalás során. Kérjük próbálja újra.');
+                }
+            };
+
+            const renderProgressBar = () => {
+                const progress = (currentStep / 8) * 100;
+                
+                return h('div', { className: 'step-grid' }, [
+                    ...STEPS.map((step) => {
+                        const isActive = currentStep === step.id;
+                        const isCompleted = currentStep > step.id;
+                        
+                        return h('div', { key: step.id, className: 'step-item' }, [
+                            h('div', {
+                                className: `medical-step-indicator ${
+                                    isCompleted ? 'medical-step-completed' : 
+                                    isActive ? 'medical-step-active' : 'medical-step-pending'
+                                }`
+                            }, step.id),
+                            h('span', { className: 'step-title' }, step.title)
+                        ]);
+                    }),
+                    h('div', { className: 'medical-progress-bar', style: { marginTop: '1rem' } }, [
+                        h('div', { 
+                            className: 'medical-progress-fill',
+                            style: { width: `${progress}%` }
+                        })
+                    ])
+                ]);
+            };
+
+            const renderStep = () => {
+                switch (currentStep) {
+                    case 1:
+                        return h('div', { style: { marginBottom: '2rem' } }, [
+                            h('div', { style: { marginBottom: '1.5rem' } }, [
+                                h('h2', { style: { fontSize: '1.5rem', fontWeight: '700', color: 'rgb(30 41 59)', marginBottom: '0.5rem' } }, 'Nyilatkozat'),
+                                h('p', { style: { color: 'rgb(100 116 139)' } }, 'Az időpontfoglalás előtt kérem jelölje be, ha az alábbiak közül valamelyik érvényes önre. Ez alapján az önnek leginkább megfelelő terapeutát tudjuk kiválasztani.')
+                            ]),
+                            h('div', {}, STATEMENTS.map((statement, index) => 
+                                h('div', {
+                                    key: index,
+                                    className: `medical-option-card ${formData.statements.includes(statement) ? 'medical-option-selected' : ''}`,
+                                    onClick: () => handleStatementChange(statement)
+                                }, [
+                                    h('div', { style: { display: 'flex', alignItems: 'flex-start', gap: '0.75rem' } }, [
+                                        h('input', {
+                                            type: 'checkbox',
+                                            checked: formData.statements.includes(statement),
+                                            onChange: () => {},
+                                            style: { marginTop: '0.25rem' }
+                                        }),
+                                        h('label', {
+                                            style: { 
+                                                color: 'rgb(51 65 85)', 
+                                                cursor: 'pointer',
+                                                fontWeight: index === STATEMENTS.length - 1 ? '600' : '400'
+                                            }
+                                        }, statement)
+                                    ])
+                                ])
+                            ))
+                        ]);
+
+                    case 2:
+                        return h('div', { style: { marginBottom: '2rem' } }, [
+                            h('div', { style: { marginBottom: '1.5rem' } }, [
+                                h('h2', { style: { fontSize: '1.5rem', fontWeight: '700', color: 'rgb(30 41 59)', marginBottom: '0.5rem' } }, 'Válassz helyszínt'),
+                                h('p', { style: { color: 'rgb(100 116 139)' } }, 'Hol szeretnéd igénybe venni a szolgáltatást?')
+                            ]),
+                            h('div', {}, locations.map((location) => 
+                                h('div', {
+                                    key: location.id,
+                                    className: `medical-option-card ${formData.location?.id === location.id ? 'medical-option-selected' : ''}`,
+                                    onClick: () => setFormData(prev => ({ ...prev, location }))
+                                }, [
+                                    h('div', { style: { display: 'flex', alignItems: 'center', gap: '0.75rem' } }, [
+                                        h('div', { style: { width: '20px', height: '20px', backgroundColor: 'rgb(37 99 235)', borderRadius: '50%' } }),
+                                        h('div', {}, [
+                                            h('h3', { style: { fontWeight: '600', color: 'rgb(30 41 59)' } }, location.name),
+                                            h('p', { style: { color: 'rgb(100 116 139)', fontSize: '0.875rem' } }, location.location)
+                                        ])
+                                    ])
+                                ])
+                            ))
+                        ]);
+
+                    case 3:
+                        return h('div', { style: { marginBottom: '2rem' } }, [
+                            h('div', { style: { marginBottom: '1.5rem' } }, [
+                                h('h2', { style: { fontSize: '1.5rem', fontWeight: '700', color: 'rgb(30 41 59)', marginBottom: '0.5rem' } }, 'Válassz dátumot'),
+                                h('p', { style: { color: 'rgb(100 116 139)' } }, 'Mikor szeretnél időpontot foglalni?')
+                            ]),
+                            h('input', {
+                                type: 'date',
+                                className: 'medical-input',
+                                min: new Date().toISOString().split('T')[0],
+                                value: formData.date,
+                                onChange: (e) => setFormData(prev => ({ ...prev, date: e.target.value }))
+                            })
+                        ]);
+
+                    case 4:
+                        return h('div', { style: { marginBottom: '2rem' } }, [
+                            h('div', { style: { marginBottom: '1.5rem' } }, [
+                                h('h2', { style: { fontSize: '1.5rem', fontWeight: '700', color: 'rgb(30 41 59)', marginBottom: '0.5rem' } }, 'Válassz időpontot'),
+                                h('p', { style: { color: 'rgb(100 116 139)' } }, 'Milyen időpontban szeretnél időpontot?')
+                            ]),
+                            h('div', { className: 'grid-3' }, TIME_SLOTS.map((timeSlot) => {
+                                const isAvailable = availableTimeSlots.includes(timeSlot);
+                                return h('div', {
+                                    key: timeSlot,
+                                    className: `medical-option-card ${
+                                        formData.time === timeSlot ? 'medical-option-selected' : 
+                                        !isAvailable ? 'medical-option-disabled' : ''
+                                    }`,
+                                    onClick: () => isAvailable && setFormData(prev => ({ ...prev, time: timeSlot }))
+                                }, [
+                                    h('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' } }, [
+                                        h('span', { 
+                                            style: { 
+                                                fontWeight: '500',
+                                                color: isAvailable ? 'rgb(30 41 59)' : 'rgb(148 163 184)'
+                                            }
+                                        }, timeSlot)
+                                    ])
+                                ]);
+                            }))
+                        ]);
+
+                    case 5:
+                        const availableTherapists = getAvailableTherapistsForTimeSlot();
+                        return h('div', { style: { marginBottom: '2rem' } }, [
+                            h('div', { style: { marginBottom: '1.5rem' } }, [
+                                h('h2', { style: { fontSize: '1.5rem', fontWeight: '700', color: 'rgb(30 41 59)', marginBottom: '0.5rem' } }, 'Válassz terapeutát'),
+                                h('p', { style: { color: 'rgb(100 116 139)' } }, 'Ki végezze el a kezelést?')
+                            ]),
+                            h('div', {}, availableTherapists.map((therapist) => 
+                                h('div', {
+                                    key: therapist.id,
+                                    className: `medical-option-card ${formData.therapist?.id === therapist.id ? 'medical-option-selected' : ''}`,
+                                    onClick: () => setFormData(prev => ({ ...prev, therapist }))
+                                }, [
+                                    h('div', { style: { display: 'flex', alignItems: 'flex-start', gap: '0.75rem' } }, [
+                                        h('div', { style: { width: '20px', height: '20px', backgroundColor: 'rgb(37 99 235)', borderRadius: '50%', marginTop: '0.25rem' } }),
+                                        h('div', { style: { flex: '1' } }, [
+                                            h('div', { style: { display: 'flex', alignItems: 'center', gap: '0.5rem' } }, [
+                                                h('h3', { style: { fontWeight: '600', color: 'rgb(30 41 59)' } }, therapist.name),
+                                                therapist.expert && h('span', {
+                                                    style: {
+                                                        backgroundColor: 'rgb(220 252 231)',
+                                                        color: 'rgb(22 163 74)',
+                                                        fontSize: '0.75rem',
+                                                        padding: '0.25rem 0.5rem',
+                                                        borderRadius: '9999px'
+                                                    }
+                                                }, 'Szakértő')
+                                            ]),
+                                            h('p', { style: { color: 'rgb(100 116 139)', fontSize: '0.875rem' } }, therapist.role),
+                                            therapist.description && h('p', { 
+                                                style: { color: 'rgb(100 116 139)', fontSize: '0.875rem', marginTop: '0.25rem' } 
+                                            }, therapist.description)
+                                        ])
+                                    ])
+                                ])
+                            ))
+                        ]);
+
+                    case 6:
+                        return h('div', { style: { marginBottom: '2rem' } }, [
+                            h('div', { style: { marginBottom: '1.5rem' } }, [
+                                h('h2', { style: { fontSize: '1.5rem', fontWeight: '700', color: 'rgb(30 41 59)', marginBottom: '0.5rem' } }, 'Válassz szolgáltatást'),
+                                h('p', { style: { color: 'rgb(100 116 139)' } }, 'Melyik kezelést szeretnéd?')
+                            ]),
+                            h('div', {}, services.map((service) => 
+                                h('div', {
+                                    key: service.id,
+                                    className: `medical-option-card ${formData.service?.id === service.id ? 'medical-option-selected' : ''}`,
+                                    onClick: () => setFormData(prev => ({ ...prev, service }))
+                                }, [
+                                    h('div', { style: { display: 'flex', alignItems: 'flex-start', gap: '0.75rem' } }, [
+                                        h('div', { style: { width: '20px', height: '20px', backgroundColor: 'rgb(37 99 235)', borderRadius: '50%', marginTop: '0.25rem' } }),
+                                        h('div', { style: { flex: '1' } }, [
+                                            h('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' } }, [
+                                                h('div', {}, [
+                                                    h('h3', { style: { fontWeight: '600', color: 'rgb(30 41 59)' } }, service.name),
+                                                    service.description && h('p', { 
+                                                        style: { color: 'rgb(100 116 139)', fontSize: '0.875rem', marginTop: '0.25rem' } 
+                                                    }, service.description),
+                                                    h('p', { 
+                                                        style: { color: 'rgb(100 116 139)', fontSize: '0.875rem', marginTop: '0.25rem' } 
+                                                    }, `${service.time} perc`)
+                                                ]),
+                                                h('span', { 
+                                                    style: { color: 'rgb(37 99 235)', fontWeight: '700', fontSize: '1.125rem' } 
+                                                }, `${service.price.toLocaleString()} Ft`)
+                                            ])
+                                        ])
+                                    ])
+                                ])
+                            ))
+                        ]);
+
+                    case 7:
+                        return h('div', { style: { marginBottom: '2rem' } }, [
+                            h('div', { style: { marginBottom: '1.5rem' } }, [
+                                h('h2', { style: { fontSize: '1.5rem', fontWeight: '700', color: 'rgb(30 41 59)', marginBottom: '0.5rem' } }, 'Személyes adatok'),
+                                h('p', { style: { color: 'rgb(100 116 139)' } }, 'Kérjük, adja meg az alábbi adatokat')
+                            ]),
+                            h('div', {}, [
+                                h('label', { 
+                                    style: { 
+                                        display: 'block', 
+                                        fontSize: '0.875rem', 
+                                        fontWeight: '500', 
+                                        color: 'rgb(51 65 85)', 
+                                        marginBottom: '0.5rem' 
+                                    } 
+                                }, 'Teljes név *'),
+                                h('input', {
+                                    type: 'text',
+                                    className: 'medical-input',
+                                    placeholder: 'Adja meg a teljes nevét',
+                                    value: formData.personalData.fullName,
+                                    onChange: (e) => setFormData(prev => ({
+                                        ...prev,
+                                        personalData: { ...prev.personalData, fullName: e.target.value }
+                                    }))
+                                })
+                            ])
+                        ]);
+
+                    case 8:
+                        return h('div', { style: { marginBottom: '2rem' } }, [
+                            h('div', { style: { marginBottom: '1.5rem' } }, [
+                                h('h2', { style: { fontSize: '1.5rem', fontWeight: '700', color: 'rgb(30 41 59)', marginBottom: '0.5rem' } }, 'Összegzés'),
+                                h('p', { style: { color: 'rgb(100 116 139)' } }, 'Ellenőrizd a foglalás adatait')
+                            ]),
+                            h('div', { className: 'summary-grid' }, [
+                                h('div', { className: 'summary-item' }, [
+                                    h('h4', {}, 'Helyszín'),
+                                    h('p', {}, formData.location?.name),
+                                    h('p', { className: 'secondary' }, formData.location?.location)
+                                ]),
+                                h('div', { className: 'summary-item' }, [
+                                    h('h4', {}, 'Időpont'),
+                                    h('p', {}, formData.date),
+                                    h('p', { className: 'secondary' }, formData.time)
+                                ]),
+                                h('div', { className: 'summary-item' }, [
+                                    h('h4', {}, 'Terapeuta'),
+                                    h('p', {}, formData.therapist?.name),
+                                    h('p', { className: 'secondary' }, formData.therapist?.role)
+                                ]),
+                                h('div', { className: 'summary-item' }, [
+                                    h('h4', {}, 'Szolgáltatás'),
+                                    h('p', {}, formData.service?.name),
+                                    h('p', { className: 'secondary' }, `${formData.service?.price.toLocaleString()} Ft`)
+                                ]),
+                                h('div', { className: 'summary-item', style: { gridColumn: 'span 2' } }, [
+                                    h('h4', {}, 'Személyes adatok'),
+                                    h('p', {}, formData.personalData.fullName)
+                                ])
+                            ])
+                        ]);
+
+                    default:
+                        return null;
+                }
+            };
+
+            return h('div', { style: { maxWidth: '64rem', margin: '0 auto', padding: '1.5rem' } }, [
+                h('div', { className: 'medical-container' }, [
+                    renderProgressBar(),
+                    h('div', { className: 'content-area' }, renderStep()),
+                    h('div', { className: 'navigation-area' }, [
+                        h('button', {
+                            onClick: handleBack,
+                            disabled: currentStep === 1,
+                            className: 'medical-button-secondary',
+                            style: { opacity: currentStep === 1 ? '0.5' : '1' }
+                        }, '← Vissza'),
+                        currentStep === 8 ? 
+                            h('button', {
+                                onClick: handleSubmit,
+                                disabled: loading,
+                                className: 'medical-button-primary'
+                            }, loading ? 'Foglalás...' : 'Foglalás véglegesítése ✓') :
+                            h('button', {
+                                onClick: handleNext,
+                                disabled: !canProceed(),
+                                className: 'medical-button-primary',
+                                style: { opacity: !canProceed() ? '0.5' : '1' }
+                            }, 'Tovább →')
+                    ])
+                ])
+            ]);
+        }
+
+        // Render the app
+        ReactDOM.render(React.createElement(ReservationSystem), document.getElementById('reservation-root'));
+    </script>
+</body>
+</html>
