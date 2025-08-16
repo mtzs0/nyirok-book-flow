@@ -90,6 +90,7 @@ export default function ReservationSystem() {
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [availableTimeSlots, setAvailableTimeSlots] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
+  const [calendarDate, setCalendarDate] = useState(new Date());
 
   // Load initial data
   useEffect(() => {
@@ -289,6 +290,134 @@ export default function ReservationSystem() {
     }
   };
 
+  const getDaysInMonth = (date: Date) => {
+    return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+  };
+
+  const getFirstDayOfMonth = (date: Date) => {
+    const firstDay = new Date(date.getFullYear(), date.getMonth(), 1).getDay();
+    return firstDay === 0 ? 6 : firstDay - 1; // Convert Sunday (0) to 6, and adjust for Monday start
+  };
+
+  const formatDateForInput = (date: Date) => {
+    return date.toISOString().split('T')[0];
+  };
+
+  const isDateDisabled = (date: Date) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return date < today;
+  };
+
+  const navigateCalendar = (direction: 'prev' | 'next') => {
+    setCalendarDate(prev => {
+      const newDate = new Date(prev);
+      if (direction === 'prev') {
+        newDate.setMonth(newDate.getMonth() - 1);
+      } else {
+        newDate.setMonth(newDate.getMonth() + 1);
+      }
+      return newDate;
+    });
+  };
+
+  const handleDateSelect = (day: number) => {
+    const selectedDate = new Date(calendarDate.getFullYear(), calendarDate.getMonth(), day);
+    if (!isDateDisabled(selectedDate)) {
+      setFormData(prev => ({ ...prev, date: formatDateForInput(selectedDate) }));
+    }
+  };
+
+  const renderCalendar = () => {
+    const daysInMonth = getDaysInMonth(calendarDate);
+    const firstDay = getFirstDayOfMonth(calendarDate);
+    const today = new Date();
+    const selectedDate = formData.date ? new Date(formData.date + 'T00:00:00') : null;
+    
+    const monthNames = [
+      'Január', 'Február', 'Március', 'Április', 'Május', 'Június',
+      'Július', 'Augusztus', 'Szeptember', 'Október', 'November', 'December'
+    ];
+    
+    const dayNames = ['H', 'K', 'Sz', 'Cs', 'P', 'Sz', 'V'];
+    
+    const days = [];
+    
+    // Empty cells for days before the first day of the month
+    for (let i = 0; i < firstDay; i++) {
+      days.push(
+        <div key={`empty-${i}`} className="h-10 w-10"></div>
+      );
+    }
+    
+    // Days of the month
+    for (let day = 1; day <= daysInMonth; day++) {
+      const date = new Date(calendarDate.getFullYear(), calendarDate.getMonth(), day);
+      const isDisabled = isDateDisabled(date);
+      const isSelected = selectedDate && 
+        date.getFullYear() === selectedDate.getFullYear() &&
+        date.getMonth() === selectedDate.getMonth() &&
+        date.getDate() === selectedDate.getDate();
+      const isToday = 
+        date.getFullYear() === today.getFullYear() &&
+        date.getMonth() === today.getMonth() &&
+        date.getDate() === today.getDate();
+      
+      days.push(
+        <button
+          key={day}
+          onClick={() => handleDateSelect(day)}
+          disabled={isDisabled}
+          className={`h-10 w-10 rounded-lg text-sm font-medium transition-colors ${
+            isSelected
+              ? 'bg-blue-600 text-white'
+              : isToday
+              ? 'bg-blue-100 text-blue-600'
+              : isDisabled
+              ? 'text-slate-300 cursor-not-allowed'
+              : 'hover:bg-slate-100 text-slate-700'
+          }`}
+        >
+          {day}
+        </button>
+      );
+    }
+    
+    return (
+      <div className="bg-white rounded-lg border border-slate-200 p-4">
+        <div className="flex items-center justify-between mb-4">
+          <button
+            onClick={() => navigateCalendar('prev')}
+            className="p-1 hover:bg-slate-100 rounded"
+          >
+            <ChevronLeft size={20} className="text-slate-600" />
+          </button>
+          <h3 className="text-lg font-semibold text-slate-800">
+            {monthNames[calendarDate.getMonth()]} {calendarDate.getFullYear()}
+          </h3>
+          <button
+            onClick={() => navigateCalendar('next')}
+            className="p-1 hover:bg-slate-100 rounded"
+          >
+            <ChevronRight size={20} className="text-slate-600" />
+          </button>
+        </div>
+        
+        <div className="grid grid-cols-7 gap-1 mb-2">
+          {dayNames.map(day => (
+            <div key={day} className="h-10 w-10 flex items-center justify-center text-sm font-medium text-slate-500">
+              {day}
+            </div>
+          ))}
+        </div>
+        
+        <div className="grid grid-cols-7 gap-1">
+          {days}
+        </div>
+      </div>
+    );
+  };
+
   const renderProgressBar = () => {
     const progress = (currentStep / 8) * 100;
     
@@ -390,14 +519,8 @@ export default function ReservationSystem() {
               <h2 className="text-2xl font-bold text-slate-800 mb-2">Válassz dátumot</h2>
               <p className="text-slate-600">Mikor szeretnél időpontot foglalni?</p>
             </div>
-            <div>
-              <input
-                type="date"
-                className="medical-input"
-                min={new Date().toISOString().split('T')[0]}
-                value={formData.date}
-                onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
-              />
+            <div className="flex justify-center">
+              {renderCalendar()}
             </div>
           </div>
         );
