@@ -323,9 +323,12 @@ export default function ReservationSystem() {
 
   const handleDateSelect = (day: number) => {
     const selectedDate = new Date(calendarDate.getFullYear(), calendarDate.getMonth(), day);
-    if (!isDateDisabled(selectedDate)) {
-      setFormData(prev => ({ ...prev, date: formatDateForInput(selectedDate) }));
-    }
+    // Fix timezone issue by using local date string format
+    const year = selectedDate.getFullYear();
+    const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
+    const dayStr = String(selectedDate.getDate()).padStart(2, '0');
+    const dateString = `${year}-${month}-${dayStr}`;
+    setFormData(prev => ({ ...prev, date: dateString }));
   };
 
   const renderCalendar = () => {

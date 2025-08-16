@@ -3,32 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nyirokmasszázs Időpontfoglalás</title>
-    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <title>Nyirok Reservation System</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        'medical-blue': '#3b82f6',
-                        'medical-light': '#f8fafc',
-                        'medical-dark': '#1e293b'
-                    }
-                }
-            }
-        }
-    </script>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
     <style>
+        /* Medical theme styles */
         .medical-container {
-            background: white;
-            border-radius: 1rem;
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            border-radius: 16px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
             border: 1px solid #e2e8f0;
         }
-        
+
         .medical-step-indicator {
             width: 40px;
             height: 40px;
@@ -38,114 +27,163 @@
             justify-content: center;
             font-weight: 600;
             transition: all 0.3s ease;
+            border: 2px solid #e2e8f0;
         }
-        
+
         .medical-step-active {
-            background-color: #3b82f6;
+            background: #3b82f6;
             color: white;
+            border-color: #3b82f6;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
         }
-        
+
         .medical-step-completed {
-            background-color: #10b981;
+            background: #10b981;
             color: white;
+            border-color: #10b981;
         }
-        
+
         .medical-step-pending {
-            background-color: #e5e7eb;
-            color: #6b7280;
+            background: #f8fafc;
+            color: #64748b;
+            border-color: #e2e8f0;
         }
-        
+
         .medical-progress-bar {
-            width: 100%;
             height: 4px;
-            background-color: #e5e7eb;
+            background: #e2e8f0;
             border-radius: 2px;
             overflow: hidden;
         }
-        
+
         .medical-progress-fill {
             height: 100%;
-            background-color: #3b82f6;
-            transition: width 0.3s ease;
+            background: linear-gradient(90deg, #3b82f6 0%, #1d4ed8 100%);
+            border-radius: 2px;
+            transition: width 0.5s ease;
         }
-        
+
         .medical-option-card {
-            padding: 1rem;
-            border: 2px solid #e5e7eb;
-            border-radius: 0.5rem;
+            padding: 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
             cursor: pointer;
             transition: all 0.2s ease;
             background: white;
         }
-        
+
         .medical-option-card:hover {
             border-color: #3b82f6;
-            background-color: #f8fafc;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+            transform: translateY(-1px);
         }
-        
+
         .medical-option-selected {
             border-color: #3b82f6;
-            background-color: #eff6ff;
+            background: #dbeafe;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
         }
-        
+
         .medical-option-disabled {
             opacity: 0.5;
             cursor: not-allowed;
-            background-color: #f9fafb;
+            background: #f8fafc;
         }
-        
+
         .medical-option-disabled:hover {
-            border-color: #e5e7eb;
-            background-color: #f9fafb;
+            transform: none;
+            box-shadow: none;
+            border-color: #e2e8f0;
         }
-        
+
         .medical-button-primary {
-            background-color: #3b82f6;
+            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
             color: white;
-            padding: 0.75rem 1.5rem;
-            border-radius: 0.5rem;
-            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
             font-weight: 600;
+            border: none;
             cursor: pointer;
-            transition: background-color 0.2s ease;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
         }
-        
-        .medical-button-primary:hover:not([disabled]) {
-            background-color: #2563eb;
+
+        .medical-button-primary:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
         }
-        
+
         .medical-button-primary:disabled {
             opacity: 0.5;
             cursor: not-allowed;
+            transform: none;
         }
-        
+
         .medical-button-secondary {
-            background-color: #f1f5f9;
-            color: #475569;
-            padding: 0.75rem 1.5rem;
-            border-radius: 0.5rem;
-            border: none;
+            background: white;
+            color: #64748b;
+            padding: 12px 24px;
+            border-radius: 8px;
             font-weight: 600;
+            border: 2px solid #e2e8f0;
             cursor: pointer;
-            transition: background-color 0.2s ease;
+            transition: all 0.2s ease;
         }
-        
-        .medical-button-secondary:hover:not([disabled]) {
-            background-color: #e2e8f0;
+
+        .medical-button-secondary:hover:not(:disabled) {
+            border-color: #3b82f6;
+            color: #3b82f6;
+            transform: translateY(-1px);
         }
-        
+
         .medical-input {
             width: 100%;
-            padding: 0.75rem;
-            border: 2px solid #e5e7eb;
-            border-radius: 0.5rem;
-            font-size: 1rem;
+            padding: 12px 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 16px;
             transition: border-color 0.2s ease;
+            background: white;
         }
-        
+
         .medical-input:focus {
             outline: none;
             border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        /* Calendar styles */
+        .calendar-day {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-weight: 500;
+        }
+
+        .calendar-day:hover:not(.disabled) {
+            background: #dbeafe;
+            color: #3b82f6;
+        }
+
+        .calendar-day.selected {
+            background: #3b82f6;
+            color: white;
+        }
+
+        .calendar-day.today {
+            background: #dbeafe;
+            color: #3b82f6;
+            font-weight: 600;
+        }
+
+        .calendar-day.disabled {
+            color: #cbd5e1;
+            cursor: not-allowed;
         }
     </style>
 </head>
@@ -154,62 +192,23 @@
 
     <script type="text/babel">
         const { useState, useEffect } = React;
-        
-        // Supabase client setup
-        const supabaseUrl = 'https://aispzwadwdikqmtpmqii.supabase.co';
-        const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFpc3B6d2Fkd2Rpa3FtdHBtcWlpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM2MjUwODYsImV4cCI6MjA2OTIwMTA4Nn0.OAziuXL-MAV60ZvrbD_77SmIttcbE113zKjwYsZ-0yE';
-        const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
+        const { createClient } = supabase;
 
-        // Icon components (simplified)
-        const CheckCircle = () => React.createElement('svg', { className: 'w-4 h-4', fill: 'currentColor', viewBox: '0 0 20 20' }, 
-            React.createElement('path', { fillRule: 'evenodd', d: 'M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z' })
-        );
-        
-        const MapPin = () => React.createElement('svg', { className: 'w-5 h-5', fill: 'currentColor', viewBox: '0 0 20 20' },
-            React.createElement('path', { fillRule: 'evenodd', d: 'M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z' })
-        );
-        
-        const Calendar = () => React.createElement('svg', { className: 'w-4 h-4', fill: 'currentColor', viewBox: '0 0 20 20' },
-            React.createElement('path', { fillRule: 'evenodd', d: 'M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z' })
-        );
-        
-        const Clock = () => React.createElement('svg', { className: 'w-4 h-4', fill: 'currentColor', viewBox: '0 0 20 20' },
-            React.createElement('path', { fillRule: 'evenodd', d: 'M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z' })
-        );
-        
-        const User = () => React.createElement('svg', { className: 'w-5 h-5', fill: 'currentColor', viewBox: '0 0 20 20' },
-            React.createElement('path', { fillRule: 'evenodd', d: 'M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z' })
-        );
-        
-        const Stethoscope = () => React.createElement('svg', { className: 'w-5 h-5', fill: 'currentColor', viewBox: '0 0 24 24' },
-            React.createElement('path', { d: 'M19 8c-1.103 0-2 .897-2 2v2c0 1.103.897 2 2 2s2-.897 2-2v-2c0-1.103-.897-2-2-2zM5 2v6c0 3.309 2.691 6 6 6s6-2.691 6-6h-2c0 2.206-1.794 4-4 4s-4-1.794-4-4V2H5zm8 0v6c0 1.103-.897 2-2 2s-2-.897-2-2V2h4z' })
-        );
-        
-        const CreditCard = () => React.createElement('svg', { className: 'w-4 h-4', fill: 'currentColor', viewBox: '0 0 20 20' },
-            React.createElement('path', { d: 'M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4zM18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z' })
-        );
-        
-        const ChevronRight = () => React.createElement('svg', { className: 'w-5 h-5', fill: 'currentColor', viewBox: '0 0 20 20' },
-            React.createElement('path', { fillRule: 'evenodd', d: 'M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z' })
-        );
-        
-        const ChevronLeft = () => React.createElement('svg', { className: 'w-5 h-5', fill: 'currentColor', viewBox: '0 0 20 20' },
-            React.createElement('path', { fillRule: 'evenodd', d: 'M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z' })
+        // Initialize Supabase client
+        const supabaseClient = createClient(
+            'https://kugvysltgozaacarocvt.supabase.co',
+            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1Z3Z5c2x0Z296YWFjYXJvY3Z0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQ0NDcxOTcsImV4cCI6MjA1MDAyMzE5N30.Bxhh6iNDWkmVGLTscf9_T9hQwmCQhz5eXJrA0pgtfMM'
         );
 
-        const Mail = () => React.createElement('svg', { className: 'w-4 h-4', fill: 'currentColor', viewBox: '0 0 20 20' },
-            React.createElement('path', { d: 'M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z' }),
-            React.createElement('path', { d: 'M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z' })
-        );
+        // Icons from Lucide
+        const { 
+            Calendar, Clock, MapPin, User, Stethoscope, CreditCard, 
+            CheckCircle, ChevronRight, ChevronLeft, Mail, Phone 
+        } = lucide;
 
-        const Phone = () => React.createElement('svg', { className: 'w-4 h-4', fill: 'currentColor', viewBox: '0 0 20 20' },
-            React.createElement('path', { d: 'M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z' })
-        );
-
-        // Constants
         const STATEMENTS = [
             "Szív problémám vagy pacemakerem van",
-            "Nem rég műtöttek vagy csonkolásos műtéten estem át",
+            "Nem rég műtöttek vagy csonkolásos műtéten estem át", 
             "Nyílt vagy fekélyes sebem van",
             "Sztómával rendelkezem",
             "Kiskorú gyerek kezelését igénylem",
@@ -217,7 +216,7 @@
         ];
 
         const TIME_SLOTS = [
-            "08:00", "09:00", "10:00", "11:00", "12:00",
+            "08:00", "09:00", "10:00", "11:00", "12:00", 
             "13:00", "14:00", "15:00", "16:00", "17:00"
         ];
 
@@ -274,7 +273,7 @@
             }, [formData.location, formData.date, personnel, reservations]);
 
             const loadLocations = async () => {
-                const { data, error } = await supabase
+                const { data, error } = await supabaseClient
                     .from('nyirok_locations')
                     .select('*');
                 
@@ -284,7 +283,7 @@
             };
 
             const loadPersonnel = async () => {
-                const { data, error } = await supabase
+                const { data, error } = await supabaseClient
                     .from('nyirok_personnel')
                     .select('*');
                 
@@ -294,7 +293,7 @@
             };
 
             const loadServices = async () => {
-                const { data, error } = await supabase
+                const { data, error } = await supabaseClient
                     .from('nyirok_services')
                     .select('*');
                 
@@ -304,7 +303,7 @@
             };
 
             const loadReservations = async () => {
-                const { data, error } = await supabase
+                const { data, error } = await supabaseClient
                     .from('nyirok_reservations')
                     .select('*')
                     .eq('date', formData.date);
@@ -421,7 +420,7 @@
                     notes: `Statements: ${formData.statements.join(', ')}`
                 };
 
-                const { error } = await supabase
+                const { error } = await supabaseClient
                     .from('nyirok_reservations')
                     .insert([reservationData]);
 
@@ -429,7 +428,6 @@
 
                 if (!error) {
                     alert('Foglalás sikeresen létrehozva!');
-                    // Reset form
                     setFormData({
                         statements: [],
                         location: null,
@@ -442,11 +440,9 @@
                     setCurrentStep(1);
                 } else {
                     alert('Hiba történt a foglalás során. Kérjük próbálja újra.');
-                    console.error('Reservation error:', error);
                 }
             };
 
-            // Add calendar helper functions
             const getDaysInMonth = (date) => {
                 return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
             };
@@ -454,10 +450,6 @@
             const getFirstDayOfMonth = (date) => {
                 const firstDay = new Date(date.getFullYear(), date.getMonth(), 1).getDay();
                 return firstDay === 0 ? 6 : firstDay - 1;
-            };
-
-            const formatDateForInput = (date) => {
-                return date.toISOString().split('T')[0];
             };
 
             const isDateDisabled = (date) => {
@@ -480,9 +472,12 @@
 
             const handleDateSelect = (day) => {
                 const selectedDate = new Date(calendarDate.getFullYear(), calendarDate.getMonth(), day);
-                if (!isDateDisabled(selectedDate)) {
-                    setFormData(prev => ({ ...prev, date: formatDateForInput(selectedDate) }));
-                }
+                // Fix timezone issue by using local date string format
+                const year = selectedDate.getFullYear();
+                const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
+                const dayStr = String(selectedDate.getDate()).padStart(2, '0');
+                const dateString = `${year}-${month}-${dayStr}`;
+                setFormData(prev => ({ ...prev, date: dateString }));
             };
 
             const renderCalendar = () => {
@@ -500,17 +495,10 @@
                 
                 const days = [];
                 
-                // Empty cells for days before the first day of the month
                 for (let i = 0; i < firstDay; i++) {
-                    days.push(
-                        React.createElement('div', { 
-                            key: `empty-${i}`, 
-                            className: 'h-10 w-10' 
-                        })
-                    );
+                    days.push(React.createElement('div', { key: `empty-${i}`, className: "h-10 w-10" }));
                 }
                 
-                // Days of the month
                 for (let day = 1; day <= daysInMonth; day++) {
                     const date = new Date(calendarDate.getFullYear(), calendarDate.getMonth(), day);
                     const isDisabled = isDateDisabled(date);
@@ -541,321 +529,328 @@
                     );
                 }
                 
-                return React.createElement('div', { className: 'bg-white rounded-lg border border-slate-200 p-4' },
-                    React.createElement('div', { className: 'flex items-center justify-between mb-4' },
+                return React.createElement('div', { className: "bg-white rounded-lg border border-slate-200 p-4" },
+                    React.createElement('div', { className: "flex items-center justify-between mb-4" },
                         React.createElement('button', {
                             onClick: () => navigateCalendar('prev'),
-                            className: 'p-1 hover:bg-slate-100 rounded'
-                        }, React.createElement(ChevronLeft, { className: 'text-slate-600' })),
-                        React.createElement('h3', { className: 'text-lg font-semibold text-slate-800' },
+                            className: "p-1 hover:bg-slate-100 rounded"
+                        }, React.createElement(ChevronLeft, { size: 20, className: "text-slate-600" })),
+                        React.createElement('h3', { className: "text-lg font-semibold text-slate-800" },
                             `${monthNames[calendarDate.getMonth()]} ${calendarDate.getFullYear()}`
                         ),
                         React.createElement('button', {
                             onClick: () => navigateCalendar('next'),
-                            className: 'p-1 hover:bg-slate-100 rounded'
-                        }, React.createElement(ChevronRight, { className: 'text-slate-600' }))
+                            className: "p-1 hover:bg-slate-100 rounded"
+                        }, React.createElement(ChevronRight, { size: 20, className: "text-slate-600" }))
                     ),
-                    React.createElement('div', { className: 'grid grid-cols-7 gap-1 mb-2' },
-                        dayNames.map(day =>
+                    React.createElement('div', { className: "grid grid-cols-7 gap-1 mb-2" },
+                        dayNames.map(day => 
                             React.createElement('div', { 
-                                key: day,
-                                className: 'h-10 w-10 flex items-center justify-center text-sm font-medium text-slate-500'
+                                key: day, 
+                                className: "h-10 w-10 flex items-center justify-center text-sm font-medium text-slate-500" 
                             }, day)
                         )
                     ),
-                    React.createElement('div', { className: 'grid grid-cols-7 gap-1' }, days)
+                    React.createElement('div', { className: "grid grid-cols-7 gap-1" }, days)
                 );
             };
 
-            // Render progress bar
             const renderProgressBar = () => {
                 const progress = (currentStep / 8) * 100;
                 
-                return React.createElement('div', { className: 'mb-8' },
-                    React.createElement('div', { className: 'flex justify-between items-center mb-4' },
-                        STEPS.map((step) => {
-                            const Icon = step.icon;
-                            const isActive = currentStep === step.id;
-                            const isCompleted = currentStep > step.id;
-                            
-                            return React.createElement('div', { 
-                                key: step.id, 
-                                className: 'flex flex-col items-center' 
-                            },
-                                React.createElement('div', {
-                                    className: `medical-step-indicator ${
+                return (
+                    React.createElement('div', { className: "mb-8" },
+                        React.createElement('div', { className: "flex justify-between items-center mb-4" },
+                            STEPS.map((step) => {
+                                const Icon = step.icon;
+                                const isActive = currentStep === step.id;
+                                const isCompleted = currentStep > step.id;
+                                
+                                return React.createElement('div', { key: step.id, className: "flex flex-col items-center" },
+                                    React.createElement('div', { className: `medical-step-indicator ${
                                         isCompleted ? 'medical-step-completed' : 
                                         isActive ? 'medical-step-active' : 'medical-step-pending'
-                                    }`
-                                }, React.createElement(Icon)),
-                                React.createElement('span', { 
-                                    className: 'text-xs mt-2 text-center max-w-16' 
-                                }, step.title)
-                            );
-                        })
-                    ),
-                    React.createElement('div', { className: 'medical-progress-bar' },
-                        React.createElement('div', { 
-                            className: 'medical-progress-fill',
-                            style: { width: `${progress}%` }
-                        })
+                                    }` },
+                                        React.createElement(Icon, { size: 16 })
+                                    ),
+                                    React.createElement('span', { className: "text-xs mt-2 text-center max-w-16" }, step.title)
+                                );
+                            })
+                        ),
+                        React.createElement('div', { className: "medical-progress-bar" },
+                            React.createElement('div', { 
+                                className: "medical-progress-fill", 
+                                style: { width: `${progress}%` }
+                            })
+                        )
                     )
                 );
             };
 
-            // Render current step
             const renderStep = () => {
                 switch (currentStep) {
                     case 1:
-                        return React.createElement('div', { className: 'space-y-6' },
-                            React.createElement('div', null,
-                                React.createElement('h2', { className: 'text-2xl font-bold text-slate-800 mb-2' }, 'Nyilatkozat'),
-                                React.createElement('p', { className: 'text-slate-600' }, 'Az időpontfoglalás előtt kérem jelölje be, ha az alábbiak közül valamelyik érvényes önre. Ez alapján az önnek leginkább megfelelő terapeutát tudjuk kiválasztani.')
-                            ),
-                            React.createElement('div', { className: 'space-y-3' },
-                                STATEMENTS.map((statement, index) =>
-                                    React.createElement('div', {
-                                        key: index,
-                                        className: `medical-option-card ${formData.statements.includes(statement) ? 'medical-option-selected' : ''}`,
-                                        onClick: () => handleStatementChange(statement)
-                                    },
-                                        React.createElement('div', { className: 'flex items-start space-x-3' },
-                                            React.createElement('input', {
-                                                type: 'checkbox',
-                                                checked: formData.statements.includes(statement),
-                                                onChange: () => {},
-                                                className: 'mt-1 rounded border-slate-300 text-blue-600 focus:ring-blue-500'
-                                            }),
-                                            React.createElement('label', { 
-                                                className: `text-slate-700 cursor-pointer ${index === STATEMENTS.length - 1 ? 'font-semibold' : ''}`
-                                            }, statement)
+                        return (
+                            React.createElement('div', { className: "space-y-6" },
+                                React.createElement('div', null,
+                                    React.createElement('h2', { className: "text-2xl font-bold text-slate-800 mb-2" }, "Nyilatkozat"),
+                                    React.createElement('p', { className: "text-slate-600" }, "Az időpontfoglalás előtt kérem jelölje be, ha az alábbiak közül valamelyik érvényes önre. Ez alapján az önnek leginkább megfelelő terapeutát tudjuk kiválasztani.")
+                                ),
+                                React.createElement('div', { className: "space-y-3" },
+                                    STATEMENTS.map((statement, index) => (
+                                        React.createElement('div', {
+                                            key: index,
+                                            className: `medical-option-card ${formData.statements.includes(statement) ? 'medical-option-selected' : ''}`,
+                                            onClick: () => handleStatementChange(statement)
+                                        },
+                                            React.createElement('div', { className: "flex items-start space-x-3" },
+                                                React.createElement('input', {
+                                                    type: "checkbox",
+                                                    checked: formData.statements.includes(statement),
+                                                    onChange: () => {},
+                                                    className: "mt-1 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                                                }),
+                                                React.createElement('label', { className: `text-slate-700 cursor-pointer ${index === STATEMENTS.length - 1 ? 'font-semibold' : ''}` }, statement)
+                                            )
                                         )
-                                    )
+                                    ))
                                 )
                             )
                         );
 
                     case 2:
-                        return React.createElement('div', { className: 'space-y-6' },
-                            React.createElement('div', null,
-                                React.createElement('h2', { className: 'text-2xl font-bold text-slate-800 mb-2' }, 'Válassz helyszínt'),
-                                React.createElement('p', { className: 'text-slate-600' }, 'Hol szeretnéd igénybe venni a szolgáltatást?')
-                            ),
-                            React.createElement('div', { className: 'grid gap-4' },
-                                locations.map((location) =>
-                                    React.createElement('div', {
-                                        key: location.id,
-                                        className: `medical-option-card ${formData.location?.id === location.id ? 'medical-option-selected' : ''}`,
-                                        onClick: () => setFormData(prev => ({ ...prev, location }))
-                                    },
-                                        React.createElement('div', { className: 'flex items-center space-x-3' },
-                                            React.createElement(MapPin, { className: 'text-blue-600' }),
-                                            React.createElement('div', null,
-                                                React.createElement('h3', { className: 'font-semibold text-slate-800' }, location.name),
-                                                React.createElement('p', { className: 'text-slate-600 text-sm' }, location.location)
+                        return (
+                            React.createElement('div', { className: "space-y-6" },
+                                React.createElement('div', null,
+                                    React.createElement('h2', { className: "text-2xl font-bold text-slate-800 mb-2" }, "Válassz helyszínt"),
+                                    React.createElement('p', { className: "text-slate-600" }, "Hol szeretnéd igénybe venni a szolgáltatást?")
+                                ),
+                                React.createElement('div', { className: "grid gap-4" },
+                                    locations.map((location) => (
+                                        React.createElement('div', {
+                                            key: location.id,
+                                            className: `medical-option-card ${formData.location?.id === location.id ? 'medical-option-selected' : ''}`,
+                                            onClick: () => setFormData(prev => ({ ...prev, location }))
+                                        },
+                                            React.createElement('div', { className: "flex items-center space-x-3" },
+                                                React.createElement(MapPin, { className: "text-blue-600", size: 20 }),
+                                                React.createElement('div', null,
+                                                    React.createElement('h3', { className: "font-semibold text-slate-800" }, location.name),
+                                                    React.createElement('p', { className: "text-slate-600 text-sm" }, location.location)
+                                                )
                                             )
                                         )
-                                    )
+                                    ))
                                 )
                             )
                         );
 
                     case 3:
-                        return React.createElement('div', { className: 'space-y-6' },
-                            React.createElement('div', null,
-                                React.createElement('h2', { className: 'text-2xl font-bold text-slate-800 mb-2' }, 'Válassz dátumot'),
-                                React.createElement('p', { className: 'text-slate-600' }, 'Mikor szeretnél időpontot foglalni?')
-                            ),
-                            React.createElement('div', { className: 'flex justify-center' },
-                                renderCalendar()
+                        return (
+                            React.createElement('div', { className: "space-y-6" },
+                                React.createElement('div', null,
+                                    React.createElement('h2', { className: "text-2xl font-bold text-slate-800 mb-2" }, "Válassz dátumot"),
+                                    React.createElement('p', { className: "text-slate-600" }, "Mikor szeretnél időpontot foglalni?")
+                                ),
+                                React.createElement('div', { className: "flex justify-center" },
+                                    renderCalendar()
+                                )
                             )
                         );
 
                     case 4:
-                        return React.createElement('div', { className: 'space-y-6' },
-                            React.createElement('div', null,
-                                React.createElement('h2', { className: 'text-2xl font-bold text-slate-800 mb-2' }, 'Válassz időpontot'),
-                                React.createElement('p', { className: 'text-slate-600' }, 'Milyen időpontban szeretnél időpontot?')
-                            ),
-                            React.createElement('div', { className: 'grid grid-cols-2 md:grid-cols-3 gap-3' },
-                                TIME_SLOTS.map((timeSlot) => {
-                                    const isAvailable = availableTimeSlots.includes(timeSlot);
-                                    return React.createElement('div', {
-                                        key: timeSlot,
-                                        className: `medical-option-card ${
-                                            formData.time === timeSlot ? 'medical-option-selected' : 
-                                            !isAvailable ? 'medical-option-disabled' : ''
-                                        }`,
-                                        onClick: () => isAvailable && setFormData(prev => ({ ...prev, time: timeSlot }))
-                                    },
-                                        React.createElement('div', { className: 'flex items-center justify-center space-x-2' },
-                                            React.createElement(Clock, { className: isAvailable ? 'text-blue-600' : 'text-slate-400' }),
-                                            React.createElement('span', { 
-                                                className: `font-medium ${isAvailable ? 'text-slate-800' : 'text-slate-400'}` 
-                                            }, timeSlot)
-                                        )
-                                    );
-                                })
+                        return (
+                            React.createElement('div', { className: "space-y-6" },
+                                React.createElement('div', null,
+                                    React.createElement('h2', { className: "text-2xl font-bold text-slate-800 mb-2" }, "Válassz időpontot"),
+                                    React.createElement('p', { className: "text-slate-600" }, "Milyen időpontban szeretnél időpontot?")
+                                ),
+                                React.createElement('div', { className: "grid grid-cols-2 md:grid-cols-3 gap-3" },
+                                    TIME_SLOTS.map((timeSlot) => {
+                                        const isAvailable = availableTimeSlots.includes(timeSlot);
+                                        return (
+                                            React.createElement('div', {
+                                                key: timeSlot,
+                                                className: `medical-option-card ${
+                                                    formData.time === timeSlot ? 'medical-option-selected' : 
+                                                    !isAvailable ? 'medical-option-disabled' : ''
+                                                }`,
+                                                onClick: () => isAvailable && setFormData(prev => ({ ...prev, time: timeSlot }))
+                                            },
+                                                React.createElement('div', { className: "flex items-center justify-center space-x-2" },
+                                                    React.createElement(Clock, { size: 16, className: isAvailable ? 'text-blue-600' : 'text-slate-400' }),
+                                                    React.createElement('span', { className: `font-medium ${isAvailable ? 'text-slate-800' : 'text-slate-400'}` }, timeSlot)
+                                                )
+                                            )
+                                        );
+                                    })
+                                )
                             )
                         );
 
                     case 5:
                         const availableTherapists = getAvailableTherapistsForTimeSlot();
-                        return React.createElement('div', { className: 'space-y-6' },
-                            React.createElement('div', null,
-                                React.createElement('h2', { className: 'text-2xl font-bold text-slate-800 mb-2' }, 'Válassz terapeutát'),
-                                React.createElement('p', { className: 'text-slate-600' }, 'Ki végezze el a kezelést?')
-                            ),
-                            React.createElement('div', { className: 'space-y-4' },
-                                availableTherapists.map((therapist) =>
-                                    React.createElement('div', {
-                                        key: therapist.id,
-                                        className: `medical-option-card ${formData.therapist?.id === therapist.id ? 'medical-option-selected' : ''}`,
-                                        onClick: () => setFormData(prev => ({ ...prev, therapist }))
-                                    },
-                                        React.createElement('div', { className: 'flex items-start space-x-3' },
-                                            React.createElement(User, { className: 'text-blue-600 mt-1' }),
-                                            React.createElement('div', { className: 'flex-1' },
-                                                React.createElement('div', { className: 'flex items-center space-x-2' },
-                                                    React.createElement('h3', { className: 'font-semibold text-slate-800' }, therapist.name),
-                                                    therapist.expert && React.createElement('span', { 
-                                                        className: 'bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full' 
-                                                    }, 'Szakértő')
-                                                ),
-                                                React.createElement('p', { className: 'text-slate-600 text-sm' }, therapist.role),
-                                                therapist.description && React.createElement('p', { 
-                                                    className: 'text-slate-500 text-sm mt-1' 
-                                                }, therapist.description)
+                        return (
+                            React.createElement('div', { className: "space-y-6" },
+                                React.createElement('div', null,
+                                    React.createElement('h2', { className: "text-2xl font-bold text-slate-800 mb-2" }, "Válassz terapeutát"),
+                                    React.createElement('p', { className: "text-slate-600" }, "Ki végezze el a kezelést?")
+                                ),
+                                React.createElement('div', { className: "space-y-4" },
+                                    availableTherapists.map((therapist) => (
+                                        React.createElement('div', {
+                                            key: therapist.id,
+                                            className: `medical-option-card ${formData.therapist?.id === therapist.id ? 'medical-option-selected' : ''}`,
+                                            onClick: () => setFormData(prev => ({ ...prev, therapist }))
+                                        },
+                                            React.createElement('div', { className: "flex items-start space-x-3" },
+                                                React.createElement(User, { className: "text-blue-600 mt-1", size: 20 }),
+                                                React.createElement('div', { className: "flex-1" },
+                                                    React.createElement('div', { className: "flex items-center space-x-2" },
+                                                        React.createElement('h3', { className: "font-semibold text-slate-800" }, therapist.name),
+                                                        therapist.expert && (
+                                                            React.createElement('span', { className: "bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full" }, "Szakértő")
+                                                        )
+                                                    ),
+                                                    React.createElement('p', { className: "text-slate-600 text-sm" }, therapist.role),
+                                                    therapist.description && (
+                                                        React.createElement('p', { className: "text-slate-500 text-sm mt-1" }, therapist.description)
+                                                    )
+                                                )
                                             )
                                         )
-                                    )
+                                    ))
                                 )
                             )
                         );
 
                     case 6:
-                        return React.createElement('div', { className: 'space-y-6' },
-                            React.createElement('div', null,
-                                React.createElement('h2', { className: 'text-2xl font-bold text-slate-800 mb-2' }, 'Válassz szolgáltatást'),
-                                React.createElement('p', { className: 'text-slate-600' }, 'Melyik kezelést szeretnéd?')
-                            ),
-                            React.createElement('div', { className: 'space-y-4' },
-                                services.map((service) =>
-                                    React.createElement('div', {
-                                        key: service.id,
-                                        className: `medical-option-card ${formData.service?.id === service.id ? 'medical-option-selected' : ''}`,
-                                        onClick: () => setFormData(prev => ({ ...prev, service }))
-                                    },
-                                        React.createElement('div', { className: 'flex items-start space-x-3' },
-                                            React.createElement(Stethoscope, { className: 'text-blue-600 mt-1' }),
-                                            React.createElement('div', { className: 'flex-1' },
-                                                React.createElement('div', { className: 'flex justify-between items-start' },
-                                                    React.createElement('div', null,
-                                                        React.createElement('h3', { className: 'font-semibold text-slate-800' }, service.name),
-                                                        service.description && React.createElement('p', { 
-                                                            className: 'text-slate-600 text-sm mt-1' 
-                                                        }, service.description),
-                                                        React.createElement('p', { className: 'text-slate-500 text-sm mt-1' }, `${service.time} perc`)
-                                                    ),
-                                                    React.createElement('span', { className: 'text-blue-600 font-bold text-lg' },
-                                                        `${service.price.toLocaleString()} Ft`
+                        return (
+                            React.createElement('div', { className: "space-y-6" },
+                                React.createElement('div', null,
+                                    React.createElement('h2', { className: "text-2xl font-bold text-slate-800 mb-2" }, "Válassz szolgáltatást"),
+                                    React.createElement('p', { className: "text-slate-600" }, "Melyik kezelést szeretnéd?")
+                                ),
+                                React.createElement('div', { className: "space-y-4" },
+                                    services.map((service) => (
+                                        React.createElement('div', {
+                                            key: service.id,
+                                            className: `medical-option-card ${formData.service?.id === service.id ? 'medical-option-selected' : ''}`,
+                                            onClick: () => setFormData(prev => ({ ...prev, service }))
+                                        },
+                                            React.createElement('div', { className: "flex items-start space-x-3" },
+                                                React.createElement(Stethoscope, { className: "text-blue-600 mt-1", size: 20 }),
+                                                React.createElement('div', { className: "flex-1" },
+                                                    React.createElement('div', { className: "flex justify-between items-start" },
+                                                        React.createElement('div', null,
+                                                            React.createElement('h3', { className: "font-semibold text-slate-800" }, service.name),
+                                                            service.description && (
+                                                                React.createElement('p', { className: "text-slate-600 text-sm mt-1" }, service.description)
+                                                            ),
+                                                            React.createElement('p', { className: "text-slate-500 text-sm mt-1" }, `${service.time} perc`)
+                                                        ),
+                                                        React.createElement('span', { className: "text-blue-600 font-bold text-lg" }, `${service.price.toLocaleString()} Ft`)
                                                     )
                                                 )
                                             )
                                         )
-                                    )
+                                    ))
                                 )
                             )
                         );
 
                     case 7:
-                        return React.createElement('div', { className: 'space-y-6' },
-                            React.createElement('div', null,
-                                React.createElement('h2', { className: 'text-2xl font-bold text-slate-800 mb-2' }, 'Személyes adatok'),
-                                React.createElement('p', { className: 'text-slate-600' }, 'Kérjük, adja meg az alábbi adatokat')
-                            ),
-                            React.createElement('div', { className: 'space-y-4' },
+                        return (
+                            React.createElement('div', { className: "space-y-6" },
                                 React.createElement('div', null,
-                                    React.createElement('label', { className: 'block text-sm font-medium text-slate-700 mb-2' }, 'Teljes név *'),
-                                    React.createElement('input', {
-                                        type: 'text',
-                                        className: 'medical-input',
-                                        placeholder: 'Adja meg a teljes nevét',
-                                        value: formData.personalData.fullName,
-                                        onChange: (e) => setFormData(prev => ({
-                                            ...prev,
-                                            personalData: { ...prev.personalData, fullName: e.target.value }
-                                        }))
-                                    })
+                                    React.createElement('h2', { className: "text-2xl font-bold text-slate-800 mb-2" }, "Személyes adatok"),
+                                    React.createElement('p', { className: "text-slate-600" }, "Kérjük, adja meg az alábbi adatokat")
                                 ),
-                                React.createElement('div', null,
-                                    React.createElement('label', { className: 'block text-sm font-medium text-slate-700 mb-2' }, 'E-mail cím *'),
-                                    React.createElement('div', { className: 'relative' },
-                                        React.createElement(Mail, { className: 'absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400' }),
+                                React.createElement('div', { className: "space-y-4" },
+                                    React.createElement('div', null,
+                                        React.createElement('label', { className: "block text-sm font-medium text-slate-700 mb-2" }, "Teljes név *"),
                                         React.createElement('input', {
-                                            type: 'email',
-                                            className: 'medical-input pl-10',
-                                            placeholder: 'pelda@email.hu',
-                                            value: formData.personalData.email,
+                                            type: "text",
+                                            className: "medical-input",
+                                            placeholder: "Adja meg a teljes nevét",
+                                            value: formData.personalData.fullName,
                                             onChange: (e) => setFormData(prev => ({
                                                 ...prev,
-                                                personalData: { ...prev.personalData, email: e.target.value }
+                                                personalData: { ...prev.personalData, fullName: e.target.value }
                                             }))
                                         })
-                                    )
-                                ),
-                                React.createElement('div', null,
-                                    React.createElement('label', { className: 'block text-sm font-medium text-slate-700 mb-2' }, 'Telefonszám *'),
-                                    React.createElement('div', { className: 'relative' },
-                                        React.createElement(Phone, { className: 'absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400' }),
-                                        React.createElement('input', {
-                                            type: 'tel',
-                                            className: 'medical-input pl-10',
-                                            placeholder: '+36 30 123 4567',
-                                            value: formData.personalData.phone,
-                                            onChange: (e) => setFormData(prev => ({
-                                                ...prev,
-                                                personalData: { ...prev.personalData, phone: e.target.value }
-                                            }))
-                                        })
+                                    ),
+                                    React.createElement('div', null,
+                                        React.createElement('label', { className: "block text-sm font-medium text-slate-700 mb-2" }, "E-mail cím *"),
+                                        React.createElement('div', { className: "relative" },
+                                            React.createElement(Mail, { className: "absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400", size: 16 }),
+                                            React.createElement('input', {
+                                                type: "email",
+                                                className: "medical-input pl-10",
+                                                placeholder: "pelda@email.hu",
+                                                value: formData.personalData.email,
+                                                onChange: (e) => setFormData(prev => ({
+                                                    ...prev,
+                                                    personalData: { ...prev.personalData, email: e.target.value }
+                                                }))
+                                            })
+                                        )
+                                    ),
+                                    React.createElement('div', null,
+                                        React.createElement('label', { className: "block text-sm font-medium text-slate-700 mb-2" }, "Telefonszám *"),
+                                        React.createElement('div', { className: "relative" },
+                                            React.createElement(Phone, { className: "absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400", size: 16 }),
+                                            React.createElement('input', {
+                                                type: "tel",
+                                                className: "medical-input pl-10",
+                                                placeholder: "+36 30 123 4567",
+                                                value: formData.personalData.phone,
+                                                onChange: (e) => setFormData(prev => ({
+                                                    ...prev,
+                                                    personalData: { ...prev.personalData, phone: e.target.value }
+                                                }))
+                                            })
+                                        )
                                     )
                                 )
                             )
                         );
 
                     case 8:
-                        return React.createElement('div', { className: 'space-y-6' },
-                            React.createElement('div', null,
-                                React.createElement('h2', { className: 'text-2xl font-bold text-slate-800 mb-2' }, 'Összegzés'),
-                                React.createElement('p', { className: 'text-slate-600' }, 'Ellenőrizd a foglalás adatait')
-                            ),
-                            React.createElement('div', { className: 'bg-slate-50 rounded-xl p-6 space-y-4' },
-                                React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 gap-4' },
-                                    React.createElement('div', null,
-                                        React.createElement('h4', { className: 'font-medium text-slate-700 mb-2' }, 'Helyszín'),
-                                        React.createElement('p', { className: 'text-slate-900' }, formData.location?.name),
-                                        React.createElement('p', { className: 'text-slate-600 text-sm' }, formData.location?.location)
-                                    ),
-                                    React.createElement('div', null,
-                                        React.createElement('h4', { className: 'font-medium text-slate-700 mb-2' }, 'Időpont'),
-                                        React.createElement('p', { className: 'text-slate-900' }, formData.date),
-                                        React.createElement('p', { className: 'text-slate-600 text-sm' }, formData.time)
-                                    ),
-                                    React.createElement('div', null,
-                                        React.createElement('h4', { className: 'font-medium text-slate-700 mb-2' }, 'Terapeuta'),
-                                        React.createElement('p', { className: 'text-slate-900' }, formData.therapist?.name),
-                                        React.createElement('p', { className: 'text-slate-600 text-sm' }, formData.therapist?.role)
-                                    ),
-                                    React.createElement('div', null,
-                                        React.createElement('h4', { className: 'font-medium text-slate-700 mb-2' }, 'Szolgáltatás'),
-                                        React.createElement('p', { className: 'text-slate-900' }, formData.service?.name),
-                                        React.createElement('p', { className: 'text-slate-600 text-sm' }, `${formData.service?.price.toLocaleString()} Ft`)
-                                    ),
-                                    React.createElement('div', { className: 'md:col-span-2' },
-                                        React.createElement('h4', { className: 'font-medium text-slate-700 mb-2' }, 'Személyes adatok'),
-                                        React.createElement('p', { className: 'text-slate-900' }, formData.personalData.fullName),
-                                        React.createElement('p', { className: 'text-slate-600 text-sm' }, formData.personalData.email),
-                                        React.createElement('p', { className: 'text-slate-600 text-sm' }, formData.personalData.phone)
+                        return (
+                            React.createElement('div', { className: "space-y-6" },
+                                React.createElement('div', null,
+                                    React.createElement('h2', { className: "text-2xl font-bold text-slate-800 mb-2" }, "Összegzés"),
+                                    React.createElement('p', { className: "text-slate-600" }, "Ellenőrizd a foglalás adatait")
+                                ),
+                                React.createElement('div', { className: "bg-slate-50 rounded-xl p-6 space-y-4" },
+                                    React.createElement('div', { className: "grid grid-cols-1 md:grid-cols-2 gap-4" },
+                                        React.createElement('div', null,
+                                            React.createElement('h4', { className: "font-medium text-slate-700 mb-2" }, "Helyszín"),
+                                            React.createElement('p', { className: "text-slate-900" }, formData.location?.name),
+                                            React.createElement('p', { className: "text-slate-600 text-sm" }, formData.location?.location)
+                                        ),
+                                        React.createElement('div', null,
+                                            React.createElement('h4', { className: "font-medium text-slate-700 mb-2" }, "Időpont"),
+                                            React.createElement('p', { className: "text-slate-900" }, formData.date),
+                                            React.createElement('p', { className: "text-slate-600 text-sm" }, formData.time)
+                                        ),
+                                        React.createElement('div', null,
+                                            React.createElement('h4', { className: "font-medium text-slate-700 mb-2" }, "Terapeuta"),
+                                            React.createElement('p', { className: "text-slate-900" }, formData.therapist?.name),
+                                            React.createElement('p', { className: "text-slate-600 text-sm" }, formData.therapist?.role)
+                                        ),
+                                        React.createElement('div', null,
+                                            React.createElement('h4', { className: "font-medium text-slate-700 mb-2" }, "Szolgáltatás"),
+                                            React.createElement('p', { className: "text-slate-900" }, formData.service?.name),
+                                            React.createElement('p', { className: "text-slate-600 text-sm" }, `${formData.service?.price.toLocaleString()} Ft`)
+                                        ),
+                                        React.createElement('div', { className: "md:col-span-2" },
+                                            React.createElement('h4', { className: "font-medium text-slate-700 mb-2" }, "Személyes adatok"),
+                                            React.createElement('p', { className: "text-slate-900" }, formData.personalData.fullName),
+                                            React.createElement('p', { className: "text-slate-600 text-sm" }, formData.personalData.email),
+                                            React.createElement('p', { className: "text-slate-600 text-sm" }, formData.personalData.phone)
+                                        )
                                     )
                                 )
                             )
@@ -866,37 +861,38 @@
                 }
             };
 
-            return React.createElement('div', { className: 'max-w-4xl mx-auto p-6' },
-                React.createElement('div', { className: 'medical-container p-8' },
+            return React.createElement('div', { className: "max-w-4xl mx-auto p-6" },
+                React.createElement('div', { className: "medical-container p-8" },
                     renderProgressBar(),
-                    React.createElement('div', { className: 'min-h-96' },
+                    React.createElement('div', { className: "min-h-96" },
                         renderStep()
                     ),
-                    React.createElement('div', { className: 'flex justify-between mt-8 pt-6 border-t border-slate-200' },
+                    React.createElement('div', { className: "flex justify-between mt-8 pt-6 border-t border-slate-200" },
                         React.createElement('button', {
                             onClick: handleBack,
                             disabled: currentStep === 1,
-                            className: 'medical-button-secondary flex items-center space-x-2 disabled:opacity-50'
+                            className: "medical-button-secondary flex items-center space-x-2 disabled:opacity-50"
                         },
-                            React.createElement(ChevronLeft),
-                            React.createElement('span', null, 'Vissza')
+                            React.createElement(ChevronLeft, { size: 20 }),
+                            React.createElement('span', {}, 'Vissza')
                         ),
                         currentStep === 8 ?
                             React.createElement('button', {
                                 onClick: handleSubmit,
                                 disabled: loading,
-                                className: 'medical-button-primary flex items-center space-x-2'
+                                className: "medical-button-primary flex items-center space-x-2"
                             },
-                                React.createElement('span', null, loading ? 'Foglalás...' : 'Foglalás véglegesítése'),
-                                React.createElement(CheckCircle)
-                            ) :
+                                loading ? 'Foglalás...' : 'Foglalás véglegesítése',
+                                React.createElement(CheckCircle, { size: 20 })
+                            )
+                            :
                             React.createElement('button', {
                                 onClick: handleNext,
                                 disabled: !canProceed(),
-                                className: 'medical-button-primary flex items-center space-x-2'
+                                className: "medical-button-primary flex items-center space-x-2"
                             },
-                                React.createElement('span', null, 'Tovább'),
-                                React.createElement(ChevronRight)
+                                React.createElement('span', {}, 'Tovább'),
+                                React.createElement(ChevronRight, { size: 20 })
                             )
                     )
                 )
@@ -904,8 +900,7 @@
         }
 
         // Render the component
-        const root = ReactDOM.createRoot(document.getElementById('reservation-root'));
-        root.render(React.createElement(ReservationSystem));
+        ReactDOM.render(React.createElement(ReservationSystem), document.getElementById('reservation-root'));
     </script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 </body>
