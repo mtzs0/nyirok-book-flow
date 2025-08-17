@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="hu">
 <head>
@@ -234,41 +235,6 @@
     </div>
 
     <script type="text/babel">
-        // Error boundary wrapper
-        class ErrorBoundary extends React.Component {
-            constructor(props) {
-                super(props);
-                this.state = { hasError: false, error: null };
-            }
-
-            static getDerivedStateFromError(error) {
-                return { hasError: true, error };
-            }
-
-            componentDidCatch(error, errorInfo) {
-                console.error('React Error Boundary caught an error:', error, errorInfo);
-            }
-
-            render() {
-                if (this.state.hasError) {
-                    return (
-                        <div className="error-message">
-                            <div>
-                                <h3>Hiba történt a foglalási rendszer betöltésekor</h3>
-                                <p>Kérjük, frissítse az oldalt vagy próbálja újra később.</p>
-                                <details style={{marginTop: '10px', fontSize: '14px'}}>
-                                    <summary>Technikai részletek</summary>
-                                    <pre>{this.state.error?.toString()}</pre>
-                                </details>
-                            </div>
-                        </div>
-                    );
-                }
-
-                return this.props.children;
-            }
-        }
-
         // Check if all dependencies are loaded
         if (typeof React === 'undefined' || typeof ReactDOM === 'undefined' || typeof supabase === 'undefined') {
             console.error('Required dependencies not loaded:', {
@@ -279,837 +245,821 @@
             });
             document.getElementById('reservation-root').innerHTML = '<div class="error-message">Hiba: A szükséges függvények nem töltődtek be. Kérjük ellenőrizze az internetkapcsolatot.</div>';
         } else {
-            try {
-                console.log('All dependencies loaded successfully');
-                const { useState, useEffect } = React;
-                const { createClient } = supabase;
+            console.log('All dependencies loaded successfully');
+            
+            const { useState, useEffect } = React;
+            const { createClient } = supabase;
 
-                // Initialize Supabase client
-                const supabaseClient = createClient(
-                    'https://kugvysltgozaacarocvt.supabase.co',
-                    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1Z3Z5c2x0Z296YWFjYXJvY3Z0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQ0NDcxOTcsImV4cCI6MjA1MDAyMzE5N30.Bxhh6iNDWkmVGLTscf9_T9hQwmCQhz5eXJrA0pgtfMM'
-                );
+            // Initialize Supabase client
+            const supabaseClient = createClient(
+                'https://kugvysltgozaacarocvt.supabase.co',
+                'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1Z3Z5c2x0Z296YWFjYXJvY3Z0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQ0NDcxOTcsImV4cCI6MjA1MDAyMzE5N30.Bxhh6iNDWkmVGLTscf9_T9hQwmCQhz5eXJrA0pgtfMM'
+            );
 
-                // Icons from Lucide - check if available
-                let icons = {};
-                if (typeof lucide !== 'undefined') {
-                    icons = {
-                        Calendar: lucide.Calendar,
-                        Clock: lucide.Clock,
-                        MapPin: lucide.MapPin,
-                        User: lucide.User,
-                        Stethoscope: lucide.Stethoscope,
-                        CreditCard: lucide.CreditCard,
-                        CheckCircle: lucide.CheckCircle,
-                        ChevronRight: lucide.ChevronRight,
-                        ChevronLeft: lucide.ChevronLeft,
-                        Mail: lucide.Mail,
-                        Phone: lucide.Phone
-                    };
-                    console.log('Lucide icons loaded:', Object.keys(icons));
-                } else {
-                    console.warn('Lucide not available, using fallback icons');
-                    // Fallback icon component
-                    const FallbackIcon = ({ size = 20, className = '' }) => (
-                        <div className={`inline-block ${className}`} style={{width: size, height: size, background: '#3b82f6', borderRadius: '2px'}}></div>
-                    );
-                    
-                    icons = {
-                        Calendar: FallbackIcon,
-                        Clock: FallbackIcon,
-                        MapPin: FallbackIcon,
-                        User: FallbackIcon,
-                        Stethoscope: FallbackIcon,
-                        CreditCard: FallbackIcon,
-                        CheckCircle: FallbackIcon,
-                        ChevronRight: FallbackIcon,
-                        ChevronLeft: FallbackIcon,
-                        Mail: FallbackIcon,
-                        Phone: FallbackIcon
-                    };
-                }
+            // Simple icon components (fallback if Lucide fails)
+            const SimpleIcon = ({ children, size = 20, className = '' }) => (
+                <span style={{ 
+                    display: 'inline-flex', 
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: size, 
+                    height: size,
+                    fontSize: '12px',
+                    fontWeight: 'bold'
+                }} className={className}>
+                    {children}
+                </span>
+            );
 
-                const STATEMENTS = [
-                    "Szív problémám vagy pacemakerem van",
-                    "Nem rég műtöttek vagy csonkolásos műtéten estem át", 
-                    "Nyílt vagy fekélyes sebem van",
-                    "Sztómával rendelkezem",
-                    "Kiskorú gyerek kezelését igénylem",
-                    "A fentiek közül egyik sem érvényes rám nézve"
-                ];
+            // Icons - use Lucide if available, otherwise simple fallbacks
+            const icons = {
+                Calendar: () => <SimpleIcon>📅</SimpleIcon>,
+                Clock: () => <SimpleIcon>⏰</SimpleIcon>,
+                MapPin: () => <SimpleIcon>📍</SimpleIcon>,
+                User: () => <SimpleIcon>👤</SimpleIcon>,
+                Stethoscope: () => <SimpleIcon>🩺</SimpleIcon>,
+                CreditCard: () => <SimpleIcon>💳</SimpleIcon>,
+                CheckCircle: () => <SimpleIcon>✓</SimpleIcon>,
+                ChevronRight: () => <SimpleIcon>›</SimpleIcon>,
+                ChevronLeft: () => <SimpleIcon>‹</SimpleIcon>,
+                Mail: () => <SimpleIcon>✉</SimpleIcon>,
+                Phone: () => <SimpleIcon>📞</SimpleIcon>
+            };
 
-                const TIME_SLOTS = [
-                    "08:00", "09:00", "10:00", "11:00", "12:00", 
-                    "13:00", "14:00", "15:00", "16:00", "17:00"
-                ];
+            const STATEMENTS = [
+                "Szív problémám vagy pacemakerem van",
+                "Nem rég műtöttek vagy csonkolásos műtéten estem át", 
+                "Nyílt vagy fekélyes sebem van",
+                "Sztómával rendelkezem",
+                "Kiskorú gyerek kezelését igénylem",
+                "A fentiek közül egyik sem érvényes rám nézve"
+            ];
 
-                const STEPS = [
-                    { id: 1, title: "Nyilatkozat", icon: icons.CheckCircle },
-                    { id: 2, title: "Helyszín", icon: icons.MapPin },
-                    { id: 3, title: "Dátum", icon: icons.Calendar },
-                    { id: 4, title: "Időpont", icon: icons.Clock },
-                    { id: 5, title: "Terapeuta", icon: icons.User },
-                    { id: 6, title: "Szolgáltatás", icon: icons.Stethoscope },
-                    { id: 7, title: "Adatok", icon: icons.CreditCard },
-                    { id: 8, title: "Összegzés", icon: icons.CheckCircle }
-                ];
+            const TIME_SLOTS = [
+                "08:00", "09:00", "10:00", "11:00", "12:00", 
+                "13:00", "14:00", "15:00", "16:00", "17:00"
+            ];
 
-                function ReservationSystem() {
-                    console.log('ReservationSystem component rendering');
-                    
-                    const [currentStep, setCurrentStep] = useState(1);
-                    const [formData, setFormData] = useState({
-                        statements: [],
-                        location: null,
-                        date: '',
-                        time: '',
-                        therapist: null,
-                        service: null,
-                        personalData: { fullName: '', email: '', phone: '' }
-                    });
+            const STEPS = [
+                { id: 1, title: "Nyilatkozat", icon: 'CheckCircle' },
+                { id: 2, title: "Helyszín", icon: 'MapPin' },
+                { id: 3, title: "Dátum", icon: 'Calendar' },
+                { id: 4, title: "Időpont", icon: 'Clock' },
+                { id: 5, title: "Terapeuta", icon: 'User' },
+                { id: 6, title: "Szolgáltatás", icon: 'Stethoscope' },
+                { id: 7, title: "Adatok", icon: 'CreditCard' },
+                { id: 8, title: "Összegzés", icon: 'CheckCircle' }
+            ];
 
-                    const [locations, setLocations] = useState([]);
-                    const [personnel, setPersonnel] = useState([]);
-                    const [services, setServices] = useState([]);
-                    const [reservations, setReservations] = useState([]);
-                    const [availableTimeSlots, setAvailableTimeSlots] = useState([]);
-                    const [loading, setLoading] = useState(false);
-                    const [calendarDate, setCalendarDate] = useState(new Date());
+            function ReservationSystem() {
+                console.log('ReservationSystem component rendering');
+                
+                const [currentStep, setCurrentStep] = useState(1);
+                const [formData, setFormData] = useState({
+                    statements: [],
+                    location: null,
+                    date: '',
+                    time: '',
+                    therapist: null,
+                    service: null,
+                    personalData: { fullName: '', email: '', phone: '' }
+                });
 
-                    // Load initial data
-                    useEffect(() => {
-                        console.log('Loading initial data...');
-                        loadLocations();
-                        loadPersonnel();
-                        loadServices();
-                    }, []);
+                const [locations, setLocations] = useState([]);
+                const [personnel, setPersonnel] = useState([]);
+                const [services, setServices] = useState([]);
+                const [reservations, setReservations] = useState([]);
+                const [availableTimeSlots, setAvailableTimeSlots] = useState([]);
+                const [loading, setLoading] = useState(false);
+                const [calendarDate, setCalendarDate] = useState(new Date());
 
-                    // Load reservations when date changes
-                    useEffect(() => {
-                        if (formData.date) {
-                            console.log('Loading reservations for date:', formData.date);
-                            loadReservations();
-                        }
-                    }, [formData.date]);
+                // Load initial data
+                useEffect(() => {
+                    console.log('Loading initial data...');
+                    loadLocations();
+                    loadPersonnel();
+                    loadServices();
+                }, []);
 
-                    // Calculate available time slots
-                    useEffect(() => {
-                        if (formData.location && formData.date) {
-                            console.log('Calculating available time slots...');
-                            calculateAvailableTimeSlots();
-                        }
-                    }, [formData.location, formData.date, personnel, reservations]);
+                // Load reservations when date changes
+                useEffect(() => {
+                    if (formData.date) {
+                        console.log('Loading reservations for date:', formData.date);
+                        loadReservations();
+                    }
+                }, [formData.date]);
 
-                    const loadLocations = async () => {
-                        try {
-                            console.log('Loading locations...');
-                            const { data, error } = await supabaseClient
-                                .from('nyirok_locations')
-                                .select('*');
-                            
-                            if (data && !error) {
-                                console.log('Locations loaded:', data);
-                                setLocations(data);
-                            } else {
-                                console.error('Error loading locations:', error);
-                            }
-                        } catch (error) {
+                // Calculate available time slots
+                useEffect(() => {
+                    if (formData.location && formData.date) {
+                        console.log('Calculating available time slots...');
+                        calculateAvailableTimeSlots();
+                    }
+                }, [formData.location, formData.date, personnel, reservations]);
+
+                const loadLocations = async () => {
+                    try {
+                        console.log('Loading locations...');
+                        const { data, error } = await supabaseClient
+                            .from('nyirok_locations')
+                            .select('*');
+                        
+                        if (data && !error) {
+                            console.log('Locations loaded:', data);
+                            setLocations(data);
+                        } else {
                             console.error('Error loading locations:', error);
                         }
-                    };
+                    } catch (error) {
+                        console.error('Error loading locations:', error);
+                    }
+                };
 
-                    const loadPersonnel = async () => {
-                        try {
-                            console.log('Loading personnel...');
-                            const { data, error } = await supabaseClient
-                                .from('nyirok_personnel')
-                                .select('*');
-                            
-                            if (data && !error) {
-                                console.log('Personnel loaded:', data);
-                                setPersonnel(data);
-                            } else {
-                                console.error('Error loading personnel:', error);
-                            }
-                        } catch (error) {
+                const loadPersonnel = async () => {
+                    try {
+                        console.log('Loading personnel...');
+                        const { data, error } = await supabaseClient
+                            .from('nyirok_personnel')
+                            .select('*');
+                        
+                        if (data && !error) {
+                            console.log('Personnel loaded:', data);
+                            setPersonnel(data);
+                        } else {
                             console.error('Error loading personnel:', error);
                         }
-                    };
+                    } catch (error) {
+                        console.error('Error loading personnel:', error);
+                    }
+                };
 
-                    const loadServices = async () => {
-                        try {
-                            console.log('Loading services...');
-                            const { data, error } = await supabaseClient
-                                .from('nyirok_services')
-                                .select('*');
-                            
-                            if (data && !error) {
-                                console.log('Services loaded:', data);
-                                setServices(data);
-                            } else {
-                                console.error('Error loading services:', error);
-                            }
-                        } catch (error) {
+                const loadServices = async () => {
+                    try {
+                        console.log('Loading services...');
+                        const { data, error } = await supabaseClient
+                            .from('nyirok_services')
+                            .select('*');
+                        
+                        if (data && !error) {
+                            console.log('Services loaded:', data);
+                            setServices(data);
+                        } else {
                             console.error('Error loading services:', error);
                         }
-                    };
+                    } catch (error) {
+                        console.error('Error loading services:', error);
+                    }
+                };
 
-                    const loadReservations = async () => {
-                        try {
-                            console.log('Loading reservations for date:', formData.date);
-                            const { data, error } = await supabaseClient
-                                .from('nyirok_reservations')
-                                .select('*')
-                                .eq('date', formData.date);
-                            
-                            if (data && !error) {
-                                console.log('Reservations loaded:', data);
-                                setReservations(data);
-                            } else {
-                                console.error('Error loading reservations:', error);
-                            }
-                        } catch (error) {
+                const loadReservations = async () => {
+                    try {
+                        console.log('Loading reservations for date:', formData.date);
+                        const { data, error } = await supabaseClient
+                            .from('nyirok_reservations')
+                            .select('*')
+                            .eq('date', formData.date);
+                        
+                        if (data && !error) {
+                            console.log('Reservations loaded:', data);
+                            setReservations(data);
+                        } else {
                             console.error('Error loading reservations:', error);
                         }
-                    };
+                    } catch (error) {
+                        console.error('Error loading reservations:', error);
+                    }
+                };
 
-                    const requiresExpert = () => {
-                        return !formData.statements.includes("A fentiek közül egyik sem érvényes rám nézve");
-                    };
+                const requiresExpert = () => {
+                    return !formData.statements.includes("A fentiek közül egyik sem érvényes rám nézve");
+                };
 
-                    const getAvailableTherapists = () => {
-                        if (!formData.location) return [];
-                        
-                        return personnel.filter(p => {
-                            if (p.location_id !== formData.location?.id) return false;
-                            if (requiresExpert() && !p.expert) return false;
-                            return true;
-                        });
-                    };
+                const getAvailableTherapists = () => {
+                    if (!formData.location) return [];
+                    
+                    return personnel.filter(p => {
+                        if (p.location_id !== formData.location?.id) return false;
+                        if (requiresExpert() && !p.expert) return false;
+                        return true;
+                    });
+                };
 
-                    const calculateAvailableTimeSlots = () => {
-                        const availableTherapists = getAvailableTherapists();
-                        const available = [];
+                const calculateAvailableTimeSlots = () => {
+                    const availableTherapists = getAvailableTherapists();
+                    const available = [];
 
-                        TIME_SLOTS.forEach(timeSlot => {
-                            const hasAvailableTherapist = availableTherapists.some(therapist => {
-                                return !reservations.some(reservation => 
-                                    reservation.therapist_link === therapist.id && 
-                                    reservation.time === timeSlot
-                                );
-                            });
-
-                            if (hasAvailableTherapist) {
-                                available.push(timeSlot);
-                            }
-                        });
-
-                        console.log('Available time slots:', available);
-                        setAvailableTimeSlots(available);
-                    };
-
-                    const getAvailableTherapistsForTimeSlot = () => {
-                        if (!formData.time) return [];
-                        
-                        const availableTherapists = getAvailableTherapists();
-                        
-                        return availableTherapists.filter(therapist => {
+                    TIME_SLOTS.forEach(timeSlot => {
+                        const hasAvailableTherapist = availableTherapists.some(therapist => {
                             return !reservations.some(reservation => 
                                 reservation.therapist_link === therapist.id && 
-                                reservation.time === formData.time
+                                reservation.time === timeSlot
                             );
                         });
-                    };
 
-                    const handleStatementChange = (statement) => {
-                        const isLastStatement = statement === "A fentiek közül egyik sem érvényes rám nézve";
-                        
-                        if (isLastStatement) {
-                            setFormData(prev => ({ ...prev, statements: [statement] }));
+                        if (hasAvailableTherapist) {
+                            available.push(timeSlot);
+                        }
+                    });
+
+                    console.log('Available time slots:', available);
+                    setAvailableTimeSlots(available);
+                };
+
+                const getAvailableTherapistsForTimeSlot = () => {
+                    if (!formData.time) return [];
+                    
+                    const availableTherapists = getAvailableTherapists();
+                    
+                    return availableTherapists.filter(therapist => {
+                        return !reservations.some(reservation => 
+                            reservation.therapist_link === therapist.id && 
+                            reservation.time === formData.time
+                        );
+                    });
+                };
+
+                const handleStatementChange = (statement) => {
+                    const isLastStatement = statement === "A fentiek közül egyik sem érvényes rám nézve";
+                    
+                    if (isLastStatement) {
+                        setFormData(prev => ({ ...prev, statements: [statement] }));
+                    } else {
+                        setFormData(prev => ({
+                            ...prev,
+                            statements: prev.statements.includes(statement)
+                                ? prev.statements.filter(s => s !== statement && s !== "A fentiek közül egyik sem érvényes rám nézve")
+                                : [...prev.statements.filter(s => s !== "A fentiek közül egyik sem érvényes rám nézve"), statement]
+                        }));
+                    }
+                };
+
+                const handleNext = () => {
+                    if (currentStep < 8) {
+                        setCurrentStep(prev => prev + 1);
+                    }
+                };
+
+                const handleBack = () => {
+                    if (currentStep > 1) {
+                        setCurrentStep(prev => prev - 1);
+                    }
+                };
+
+                const canProceed = () => {
+                    switch (currentStep) {
+                        case 1: return formData.statements.length > 0;
+                        case 2: return formData.location !== null;
+                        case 3: return formData.date !== '';
+                        case 4: return formData.time !== '';
+                        case 5: return formData.therapist !== null;
+                        case 6: return formData.service !== null;
+                        case 7: return formData.personalData.fullName.trim() !== '' && 
+                                       formData.personalData.email.trim() !== '' && 
+                                       formData.personalData.phone.trim() !== '';
+                        default: return false;
+                    }
+                };
+
+                const handleSubmit = async () => {
+                    if (!formData.therapist || !formData.service || !formData.location) return;
+                    
+                    setLoading(true);
+                    console.log('Submitting reservation...');
+                    
+                    try {
+                        const reservationData = {
+                            name: formData.personalData.fullName,
+                            email: formData.personalData.email,
+                            phone: formData.personalData.phone,
+                            date: formData.date,
+                            time: formData.time,
+                            location: formData.location.name,
+                            therapist: formData.therapist.name,
+                            therapist_link: formData.therapist.id,
+                            service: formData.service.name,
+                            notes: `Statements: ${formData.statements.join(', ')}`
+                        };
+
+                        console.log('Reservation data:', reservationData);
+
+                        const { error } = await supabaseClient
+                            .from('nyirok_reservations')
+                            .insert([reservationData]);
+
+                        if (!error) {
+                            alert('Foglalás sikeresen létrehozva!');
+                            setFormData({
+                                statements: [],
+                                location: null,
+                                date: '',
+                                time: '',
+                                therapist: null,
+                                service: null,
+                                personalData: { fullName: '', email: '', phone: '' }
+                            });
+                            setCurrentStep(1);
                         } else {
-                            setFormData(prev => ({
-                                ...prev,
-                                statements: prev.statements.includes(statement)
-                                    ? prev.statements.filter(s => s !== statement && s !== "A fentiek közül egyik sem érvényes rám nézve")
-                                    : [...prev.statements.filter(s => s !== "A fentiek közül egyik sem érvényes rám nézve"), statement]
-                            }));
-                        }
-                    };
-
-                    const handleNext = () => {
-                        if (currentStep < 8) {
-                            setCurrentStep(prev => prev + 1);
-                        }
-                    };
-
-                    const handleBack = () => {
-                        if (currentStep > 1) {
-                            setCurrentStep(prev => prev - 1);
-                        }
-                    };
-
-                    const canProceed = () => {
-                        switch (currentStep) {
-                            case 1: return formData.statements.length > 0;
-                            case 2: return formData.location !== null;
-                            case 3: return formData.date !== '';
-                            case 4: return formData.time !== '';
-                            case 5: return formData.therapist !== null;
-                            case 6: return formData.service !== null;
-                            case 7: return formData.personalData.fullName.trim() !== '' && 
-                                           formData.personalData.email.trim() !== '' && 
-                                           formData.personalData.phone.trim() !== '';
-                            default: return false;
-                        }
-                    };
-
-                    const handleSubmit = async () => {
-                        if (!formData.therapist || !formData.service || !formData.location) return;
-                        
-                        setLoading(true);
-                        console.log('Submitting reservation...');
-                        
-                        try {
-                            const reservationData = {
-                                name: formData.personalData.fullName,
-                                email: formData.personalData.email,
-                                phone: formData.personalData.phone,
-                                date: formData.date,
-                                time: formData.time,
-                                location: formData.location.name,
-                                therapist: formData.therapist.name,
-                                therapist_link: formData.therapist.id,
-                                service: formData.service.name,
-                                notes: `Statements: ${formData.statements.join(', ')}`
-                            };
-
-                            console.log('Reservation data:', reservationData);
-
-                            const { error } = await supabaseClient
-                                .from('nyirok_reservations')
-                                .insert([reservationData]);
-
-                            if (!error) {
-                                alert('Foglalás sikeresen létrehozva!');
-                                setFormData({
-                                    statements: [],
-                                    location: null,
-                                    date: '',
-                                    time: '',
-                                    therapist: null,
-                                    service: null,
-                                    personalData: { fullName: '', email: '', phone: '' }
-                                });
-                                setCurrentStep(1);
-                            } else {
-                                console.error('Submission error:', error);
-                                alert('Hiba történt a foglalás során. Kérjük próbálja újra.');
-                            }
-                        } catch (error) {
-                            console.error('Submit error:', error);
+                            console.error('Submission error:', error);
                             alert('Hiba történt a foglalás során. Kérjük próbálja újra.');
                         }
+                    } catch (error) {
+                        console.error('Submit error:', error);
+                        alert('Hiba történt a foglalás során. Kérjük próbálja újra.');
+                    }
+                    
+                    setLoading(false);
+                };
+
+                const getDaysInMonth = (date) => {
+                    return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+                };
+
+                const getFirstDayOfMonth = (date) => {
+                    const firstDay = new Date(date.getFullYear(), date.getMonth(), 1).getDay();
+                    return firstDay === 0 ? 6 : firstDay - 1;
+                };
+
+                const isDateDisabled = (date) => {
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    return date < today;
+                };
+
+                const navigateCalendar = (direction) => {
+                    setCalendarDate(prev => {
+                        const newDate = new Date(prev);
+                        if (direction === 'prev') {
+                            newDate.setMonth(newDate.getMonth() - 1);
+                        } else {
+                            newDate.setMonth(newDate.getMonth() + 1);
+                        }
+                        return newDate;
+                    });
+                };
+
+                const handleDateSelect = (day) => {
+                    const selectedDate = new Date(calendarDate.getFullYear(), calendarDate.getMonth(), day);
+                    const year = selectedDate.getFullYear();
+                    const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
+                    const dayStr = String(selectedDate.getDate()).padStart(2, '0');
+                    const dateString = `${year}-${month}-${dayStr}`;
+                    setFormData(prev => ({ ...prev, date: dateString }));
+                };
+
+                const renderCalendar = () => {
+                    const daysInMonth = getDaysInMonth(calendarDate);
+                    const firstDay = getFirstDayOfMonth(calendarDate);
+                    const today = new Date();
+                    const selectedDate = formData.date ? new Date(formData.date + 'T00:00:00') : null;
+                    
+                    const monthNames = [
+                        'Január', 'Február', 'Március', 'Április', 'Május', 'Június',
+                        'Július', 'Augusztus', 'Szeptember', 'Október', 'November', 'December'
+                    ];
+                    
+                    const dayNames = ['H', 'K', 'Sz', 'Cs', 'P', 'Sz', 'V'];
+                    
+                    const days = [];
+                    
+                    for (let i = 0; i < firstDay; i++) {
+                        days.push(<div key={`empty-${i}`} style={{height: '40px', width: '40px'}} />);
+                    }
+                    
+                    for (let day = 1; day <= daysInMonth; day++) {
+                        const date = new Date(calendarDate.getFullYear(), calendarDate.getMonth(), day);
+                        const isDisabled = isDateDisabled(date);
+                        const isSelected = selectedDate && 
+                            date.getFullYear() === selectedDate.getFullYear() &&
+                            date.getMonth() === selectedDate.getMonth() &&
+                            date.getDate() === selectedDate.getDate();
+                        const isToday = 
+                            date.getFullYear() === today.getFullYear() &&
+                            date.getMonth() === today.getMonth() &&
+                            date.getDate() === today.getDate();
                         
-                        setLoading(false);
-                    };
-
-                    const getDaysInMonth = (date) => {
-                        return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
-                    };
-
-                    const getFirstDayOfMonth = (date) => {
-                        const firstDay = new Date(date.getFullYear(), date.getMonth(), 1).getDay();
-                        return firstDay === 0 ? 6 : firstDay - 1;
-                    };
-
-                    const isDateDisabled = (date) => {
-                        const today = new Date();
-                        today.setHours(0, 0, 0, 0);
-                        return date < today;
-                    };
-
-                    const navigateCalendar = (direction) => {
-                        setCalendarDate(prev => {
-                            const newDate = new Date(prev);
-                            if (direction === 'prev') {
-                                newDate.setMonth(newDate.getMonth() - 1);
-                            } else {
-                                newDate.setMonth(newDate.getMonth() + 1);
-                            }
-                            return newDate;
-                        });
-                    };
-
-                    const handleDateSelect = (day) => {
-                        const selectedDate = new Date(calendarDate.getFullYear(), calendarDate.getMonth(), day);
-                        const year = selectedDate.getFullYear();
-                        const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
-                        const dayStr = String(selectedDate.getDate()).padStart(2, '0');
-                        const dateString = `${year}-${month}-${dayStr}`;
-                        setFormData(prev => ({ ...prev, date: dateString }));
-                    };
-
-                    const renderCalendar = () => {
-                        const daysInMonth = getDaysInMonth(calendarDate);
-                        const firstDay = getFirstDayOfMonth(calendarDate);
-                        const today = new Date();
-                        const selectedDate = formData.date ? new Date(formData.date + 'T00:00:00') : null;
-                        
-                        const monthNames = [
-                            'Január', 'Február', 'Március', 'Április', 'Május', 'Június',
-                            'Július', 'Augusztus', 'Szeptember', 'Október', 'November', 'December'
-                        ];
-                        
-                        const dayNames = ['H', 'K', 'Sz', 'Cs', 'P', 'Sz', 'V'];
-                        
-                        const days = [];
-                        
-                        for (let i = 0; i < firstDay; i++) {
-                            days.push(<div key={`empty-${i}`} className="h-10 w-10" />);
+                        let className = 'h-10 w-10 rounded-lg text-sm font-medium transition-colors ';
+                        if (isSelected) {
+                            className += 'bg-blue-600 text-white';
+                        } else if (isToday) {
+                            className += 'bg-blue-100 text-blue-600';
+                        } else if (isDisabled) {
+                            className += 'text-slate-300 cursor-not-allowed';
+                        } else {
+                            className += 'hover:bg-slate-100 text-slate-700';
                         }
                         
-                        for (let day = 1; day <= daysInMonth; day++) {
-                            const date = new Date(calendarDate.getFullYear(), calendarDate.getMonth(), day);
-                            const isDisabled = isDateDisabled(date);
-                            const isSelected = selectedDate && 
-                                date.getFullYear() === selectedDate.getFullYear() &&
-                                date.getMonth() === selectedDate.getMonth() &&
-                                date.getDate() === selectedDate.getDate();
-                            const isToday = 
-                                date.getFullYear() === today.getFullYear() &&
-                                date.getMonth() === today.getMonth() &&
-                                date.getDate() === today.getDate();
-                            
-                            days.push(
+                        days.push(
+                            <button
+                                key={day}
+                                onClick={() => handleDateSelect(day)}
+                                disabled={isDisabled}
+                                className={className}
+                                style={{height: '40px', width: '40px'}}
+                            >{day}</button>
+                        );
+                    }
+                    
+                    return (
+                        <div className="bg-white rounded-lg border border-slate-200 p-4">
+                            <div className="flex items-center justify-between mb-4">
                                 <button
-                                    key={day}
-                                    onClick={() => handleDateSelect(day)}
-                                    disabled={isDisabled}
-                                    className={`h-10 w-10 rounded-lg text-sm font-medium transition-colors ${
-                                        isSelected
-                                            ? 'bg-blue-600 text-white'
-                                            : isToday
-                                            ? 'bg-blue-100 text-blue-600'
-                                            : isDisabled
-                                            ? 'text-slate-300 cursor-not-allowed'
-                                            : 'hover:bg-slate-100 text-slate-700'
-                                    }`}
-                                >{day}</button>
-                            );
-                        }
-                        
-                        return (
-                            <div className="bg-white rounded-lg border border-slate-200 p-4">
-                                <div className="flex items-center justify-between mb-4">
-                                    <button
-                                        onClick={() => navigateCalendar('prev')}
-                                        className="p-1 hover:bg-slate-100 rounded"
-                                    >
-                                        <icons.ChevronLeft size={20} className="text-slate-600" />
-                                    </button>
-                                    <h3 className="text-lg font-semibold text-slate-800">
-                                        {`${monthNames[calendarDate.getMonth()]} ${calendarDate.getFullYear()}`}
-                                    </h3>
-                                    <button
-                                        onClick={() => navigateCalendar('next')}
-                                        className="p-1 hover:bg-slate-100 rounded"
-                                    >
-                                        <icons.ChevronRight size={20} className="text-slate-600" />
-                                    </button>
-                                </div>
-                                <div className="grid grid-cols-7 gap-1 mb-2">
-                                    {dayNames.map(day => (
-                                        <div key={day} className="h-10 w-10 flex items-center justify-center text-sm font-medium text-slate-500">
-                                            {day}
-                                        </div>
-                                    ))}
-                                </div>
-                                <div className="grid grid-cols-7 gap-1">
-                                    {days}
-                                </div>
+                                    onClick={() => navigateCalendar('prev')}
+                                    className="p-1 hover:bg-slate-100 rounded"
+                                >
+                                    <icons.ChevronLeft />
+                                </button>
+                                <h3 className="text-lg font-semibold text-slate-800">
+                                    {`${monthNames[calendarDate.getMonth()]} ${calendarDate.getFullYear()}`}
+                                </h3>
+                                <button
+                                    onClick={() => navigateCalendar('next')}
+                                    className="p-1 hover:bg-slate-100 rounded"
+                                >
+                                    <icons.ChevronRight />
+                                </button>
                             </div>
-                        );
-                    };
+                            <div className="grid grid-cols-7 gap-1 mb-2">
+                                {dayNames.map(day => (
+                                    <div key={day} style={{height: '40px', width: '40px'}} className="flex items-center justify-center text-sm font-medium text-slate-500">
+                                        {day}
+                                    </div>
+                                ))}
+                            </div>
+                            <div className="grid grid-cols-7 gap-1">
+                                {days}
+                            </div>
+                        </div>
+                    );
+                };
 
-                    const renderProgressBar = () => {
-                        const progress = (currentStep / 8) * 100;
-                        
-                        return (
-                            <div className="mb-8">
-                                <div className="flex justify-between items-center mb-4">
-                                    {STEPS.map((step) => {
-                                        const Icon = step.icon;
-                                        const isActive = currentStep === step.id;
-                                        const isCompleted = currentStep > step.id;
-                                        
-                                        return (
-                                            <div key={step.id} className="flex flex-col items-center">
-                                                <div className={`medical-step-indicator ${
-                                                    isCompleted ? 'medical-step-completed' : 
-                                                    isActive ? 'medical-step-active' : 'medical-step-pending'
-                                                }`}>
-                                                    <Icon size={16} />
-                                                </div>
-                                                <span className="text-xs mt-2 text-center max-w-16">{step.title}</span>
+                const renderProgressBar = () => {
+                    const progress = (currentStep / 8) * 100;
+                    
+                    return (
+                        <div className="mb-8">
+                            <div className="flex justify-between items-center mb-4">
+                                {STEPS.map((step) => {
+                                    const Icon = icons[step.icon];
+                                    const isActive = currentStep === step.id;
+                                    const isCompleted = currentStep > step.id;
+                                    
+                                    return (
+                                        <div key={step.id} className="flex flex-col items-center">
+                                            <div className={`medical-step-indicator ${
+                                                isCompleted ? 'medical-step-completed' : 
+                                                isActive ? 'medical-step-active' : 'medical-step-pending'
+                                            }`}>
+                                                <Icon />
                                             </div>
-                                        );
-                                    })}
-                                </div>
-                                <div className="medical-progress-bar">
-                                    <div 
-                                        className="medical-progress-fill" 
-                                        style={{ width: `${progress}%` }}
-                                    />
-                                </div>
+                                            <span className="text-xs mt-2 text-center max-w-16">{step.title}</span>
+                                        </div>
+                                    );
+                                })}
                             </div>
-                        );
-                    };
+                            <div className="medical-progress-bar">
+                                <div 
+                                    className="medical-progress-fill" 
+                                    style={{ width: `${progress}%` }}
+                                />
+                            </div>
+                        </div>
+                    );
+                };
 
-                    const renderStep = () => {
-                        switch (currentStep) {
-                            case 1:
-                                return (
-                                    <div className="space-y-6">
-                                        <div>
-                                            <h2 className="text-2xl font-bold text-slate-800 mb-2">Nyilatkozat</h2>
-                                            <p className="text-slate-600">Az időpontfoglalás előtt kérem jelölje be, ha az alábbiak közül valamelyik érvényes önre. Ez alapján az önnek leginkább megfelelő terapeutát tudjuk kiválasztani.</p>
-                                        </div>
-                                        <div className="space-y-3">
-                                            {STATEMENTS.map((statement, index) => (
-                                                <div
-                                                    key={index}
-                                                    className={`medical-option-card ${formData.statements.includes(statement) ? 'medical-option-selected' : ''}`}
-                                                    onClick={() => handleStatementChange(statement)}
-                                                >
-                                                    <div className="flex items-start space-x-3">
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={formData.statements.includes(statement)}
-                                                            onChange={() => {}}
-                                                            className="mt-1 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                                                        />
-                                                        <label className={`text-slate-700 cursor-pointer ${index === STATEMENTS.length - 1 ? 'font-semibold' : ''}`}>
-                                                            {statement}
-                                                        </label>
+                const renderStep = () => {
+                    switch (currentStep) {
+                        case 1:
+                            return (
+                                <div className="space-y-6">
+                                    <div>
+                                        <h2 className="text-2xl font-bold text-slate-800 mb-2">Nyilatkozat</h2>
+                                        <p className="text-slate-600">Az időpontfoglalás előtt kérem jelölje be, ha az alábbiak közül valamelyik érvényes önre. Ez alapján az önnek leginkább megfelelő terapeutát tudjuk kiválasztani.</p>
+                                    </div>
+                                    <div className="space-y-3">
+                                        {STATEMENTS.map((statement, index) => (
+                                            <div
+                                                key={index}
+                                                className={`medical-option-card ${formData.statements.includes(statement) ? 'medical-option-selected' : ''}`}
+                                                onClick={() => handleStatementChange(statement)}
+                                            >
+                                                <div className="flex items-start space-x-3">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={formData.statements.includes(statement)}
+                                                        onChange={() => {}}
+                                                        className="mt-1 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                                                    />
+                                                    <label className={`text-slate-700 cursor-pointer ${index === STATEMENTS.length - 1 ? 'font-semibold' : ''}`}>
+                                                        {statement}
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            );
+
+                        case 2:
+                            return (
+                                <div className="space-y-6">
+                                    <div>
+                                        <h2 className="text-2xl font-bold text-slate-800 mb-2">Válassz helyszínt</h2>
+                                        <p className="text-slate-600">Hol szeretnéd igénybe venni a szolgáltatást?</p>
+                                    </div>
+                                    <div className="grid gap-4">
+                                        {locations.map((location) => (
+                                            <div
+                                                key={location.id}
+                                                className={`medical-option-card ${formData.location?.id === location.id ? 'medical-option-selected' : ''}`}
+                                                onClick={() => setFormData(prev => ({ ...prev, location }))}
+                                            >
+                                                <div className="flex items-center space-x-3">
+                                                    <icons.MapPin />
+                                                    <div>
+                                                        <h3 className="font-semibold text-slate-800">{location.name}</h3>
+                                                        <p className="text-slate-600 text-sm">{location.location}</p>
                                                     </div>
                                                 </div>
-                                            ))}
-                                        </div>
+                                            </div>
+                                        ))}
                                     </div>
-                                );
+                                </div>
+                            );
 
-                            case 2:
-                                return (
-                                    <div className="space-y-6">
-                                        <div>
-                                            <h2 className="text-2xl font-bold text-slate-800 mb-2">Válassz helyszínt</h2>
-                                            <p className="text-slate-600">Hol szeretnéd igénybe venni a szolgáltatást?</p>
-                                        </div>
-                                        <div className="grid gap-4">
-                                            {locations.map((location) => (
+                        case 3:
+                            return (
+                                <div className="space-y-6">
+                                    <div>
+                                        <h2 className="text-2xl font-bold text-slate-800 mb-2">Válassz dátumot</h2>
+                                        <p className="text-slate-600">Mikor szeretnél időpontot foglalni?</p>
+                                    </div>
+                                    <div className="flex justify-center">
+                                        {renderCalendar()}
+                                    </div>
+                                </div>
+                            );
+
+                        case 4:
+                            return (
+                                <div className="space-y-6">
+                                    <div>
+                                        <h2 className="text-2xl font-bold text-slate-800 mb-2">Válassz időpontot</h2>
+                                        <p className="text-slate-600">Milyen időpontban szeretnél időpontot?</p>
+                                    </div>
+                                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                                        {TIME_SLOTS.map((timeSlot) => {
+                                            const isAvailable = availableTimeSlots.includes(timeSlot);
+                                            return (
                                                 <div
-                                                    key={location.id}
-                                                    className={`medical-option-card ${formData.location?.id === location.id ? 'medical-option-selected' : ''}`}
-                                                    onClick={() => setFormData(prev => ({ ...prev, location }))}
+                                                    key={timeSlot}
+                                                    className={`medical-option-card ${
+                                                        formData.time === timeSlot ? 'medical-option-selected' : 
+                                                        !isAvailable ? 'medical-option-disabled' : ''
+                                                    }`}
+                                                    onClick={() => isAvailable && setFormData(prev => ({ ...prev, time: timeSlot }))}
                                                 >
-                                                    <div className="flex items-center space-x-3">
-                                                        <icons.MapPin className="text-blue-600" size={20} />
-                                                        <div>
-                                                            <h3 className="font-semibold text-slate-800">{location.name}</h3>
-                                                            <p className="text-slate-600 text-sm">{location.location}</p>
+                                                    <div className="flex items-center justify-center space-x-2">
+                                                        <icons.Clock />
+                                                        <span className={`font-medium ${isAvailable ? 'text-slate-800' : 'text-slate-400'}`}>
+                                                            {timeSlot}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            );
+
+                        case 5:
+                            const availableTherapists = getAvailableTherapistsForTimeSlot();
+                            return (
+                                <div className="space-y-6">
+                                    <div>
+                                        <h2 className="text-2xl font-bold text-slate-800 mb-2">Válassz terapeutát</h2>
+                                        <p className="text-slate-600">Ki végezze el a kezelést?</p>
+                                    </div>
+                                    <div className="space-y-4">
+                                        {availableTherapists.map((therapist) => (
+                                            <div
+                                                key={therapist.id}
+                                                className={`medical-option-card ${formData.therapist?.id === therapist.id ? 'medical-option-selected' : ''}`}
+                                                onClick={() => setFormData(prev => ({ ...prev, therapist }))}
+                                            >
+                                                <div className="flex items-start space-x-3">
+                                                    <icons.User />
+                                                    <div className="flex-1">
+                                                        <div className="flex items-center space-x-2">
+                                                            <h3 className="font-semibold text-slate-800">{therapist.name}</h3>
+                                                            {therapist.expert && (
+                                                                <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">
+                                                                    Szakértő
+                                                                </span>
+                                                            )}
                                                         </div>
+                                                        <p className="text-slate-600 text-sm">{therapist.role}</p>
+                                                        {therapist.description && (
+                                                            <p className="text-slate-500 text-sm mt-1">{therapist.description}</p>
+                                                        )}
                                                     </div>
                                                 </div>
-                                            ))}
-                                        </div>
+                                            </div>
+                                        ))}
                                     </div>
-                                );
+                                </div>
+                            );
 
-                            case 3:
-                                return (
-                                    <div className="space-y-6">
-                                        <div>
-                                            <h2 className="text-2xl font-bold text-slate-800 mb-2">Válassz dátumot</h2>
-                                            <p className="text-slate-600">Mikor szeretnél időpontot foglalni?</p>
-                                        </div>
-                                        <div className="flex justify-center">
-                                            {renderCalendar()}
-                                        </div>
+                        case 6:
+                            return (
+                                <div className="space-y-6">
+                                    <div>
+                                        <h2 className="text-2xl font-bold text-slate-800 mb-2">Válassz szolgáltatást</h2>
+                                        <p className="text-slate-600">Melyik kezelést szeretnéd?</p>
                                     </div>
-                                );
-
-                            case 4:
-                                return (
-                                    <div className="space-y-6">
-                                        <div>
-                                            <h2 className="text-2xl font-bold text-slate-800 mb-2">Válassz időpontot</h2>
-                                            <p className="text-slate-600">Milyen időpontban szeretnél időpontot?</p>
-                                        </div>
-                                        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                                            {TIME_SLOTS.map((timeSlot) => {
-                                                const isAvailable = availableTimeSlots.includes(timeSlot);
-                                                return (
-                                                    <div
-                                                        key={timeSlot}
-                                                        className={`medical-option-card ${
-                                                            formData.time === timeSlot ? 'medical-option-selected' : 
-                                                            !isAvailable ? 'medical-option-disabled' : ''
-                                                        }`}
-                                                        onClick={() => isAvailable && setFormData(prev => ({ ...prev, time: timeSlot }))}
-                                                    >
-                                                        <div className="flex items-center justify-center space-x-2">
-                                                            <icons.Clock size={16} className={isAvailable ? 'text-blue-600' : 'text-slate-400'} />
-                                                            <span className={`font-medium ${isAvailable ? 'text-slate-800' : 'text-slate-400'}`}>
-                                                                {timeSlot}
+                                    <div className="space-y-4">
+                                        {services.map((service) => (
+                                            <div
+                                                key={service.id}
+                                                className={`medical-option-card ${formData.service?.id === service.id ? 'medical-option-selected' : ''}`}
+                                                onClick={() => setFormData(prev => ({ ...prev, service }))}
+                                            >
+                                                <div className="flex items-start space-x-3">
+                                                    <icons.Stethoscope />
+                                                    <div className="flex-1">
+                                                        <div className="flex justify-between items-start">
+                                                            <div>
+                                                                <h3 className="font-semibold text-slate-800">{service.name}</h3>
+                                                                {service.description && (
+                                                                    <p className="text-slate-600 text-sm mt-1">{service.description}</p>
+                                                                )}
+                                                                <p className="text-slate-500 text-sm mt-1">{service.time} perc</p>
+                                                            </div>
+                                                            <span className="text-blue-600 font-bold text-lg">
+                                                                {service.price.toLocaleString()} Ft
                                                             </span>
                                                         </div>
                                                     </div>
-                                                );
-                                            })}
-                                        </div>
-                                    </div>
-                                );
-
-                            case 5:
-                                const availableTherapists = getAvailableTherapistsForTimeSlot();
-                                return (
-                                    <div className="space-y-6">
-                                        <div>
-                                            <h2 className="text-2xl font-bold text-slate-800 mb-2">Válassz terapeutát</h2>
-                                            <p className="text-slate-600">Ki végezze el a kezelést?</p>
-                                        </div>
-                                        <div className="space-y-4">
-                                            {availableTherapists.map((therapist) => (
-                                                <div
-                                                    key={therapist.id}
-                                                    className={`medical-option-card ${formData.therapist?.id === therapist.id ? 'medical-option-selected' : ''}`}
-                                                    onClick={() => setFormData(prev => ({ ...prev, therapist }))}
-                                                >
-                                                    <div className="flex items-start space-x-3">
-                                                        <icons.User className="text-blue-600 mt-1" size={20} />
-                                                        <div className="flex-1">
-                                                            <div className="flex items-center space-x-2">
-                                                                <h3 className="font-semibold text-slate-800">{therapist.name}</h3>
-                                                                {therapist.expert && (
-                                                                    <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">
-                                                                        Szakértő
-                                                                    </span>
-                                                                )}
-                                                            </div>
-                                                            <p className="text-slate-600 text-sm">{therapist.role}</p>
-                                                            {therapist.description && (
-                                                                <p className="text-slate-500 text-sm mt-1">{therapist.description}</p>
-                                                            )}
-                                                        </div>
-                                                    </div>
                                                 </div>
-                                            ))}
-                                        </div>
+                                            </div>
+                                        ))}
                                     </div>
-                                );
+                                </div>
+                            );
 
-                            case 6:
-                                return (
-                                    <div className="space-y-6">
+                        case 7:
+                            return (
+                                <div className="space-y-6">
+                                    <div>
+                                        <h2 className="text-2xl font-bold text-slate-800 mb-2">Személyes adatok</h2>
+                                        <p className="text-slate-600">Kérjük, adja meg az alábbi adatokat</p>
+                                    </div>
+                                    <div className="space-y-4">
                                         <div>
-                                            <h2 className="text-2xl font-bold text-slate-800 mb-2">Válassz szolgáltatást</h2>
-                                            <p className="text-slate-600">Melyik kezelést szeretnéd?</p>
+                                            <label className="block text-sm font-medium text-slate-700 mb-2">Teljes név *</label>
+                                            <input
+                                                type="text"
+                                                className="medical-input"
+                                                placeholder="Adja meg a teljes nevét"
+                                                value={formData.personalData.fullName}
+                                                onChange={(e) => setFormData(prev => ({
+                                                    ...prev,
+                                                    personalData: { ...prev.personalData, fullName: e.target.value }
+                                                }))}
+                                            />
                                         </div>
-                                        <div className="space-y-4">
-                                            {services.map((service) => (
-                                                <div
-                                                    key={service.id}
-                                                    className={`medical-option-card ${formData.service?.id === service.id ? 'medical-option-selected' : ''}`}
-                                                    onClick={() => setFormData(prev => ({ ...prev, service }))}
-                                                >
-                                                    <div className="flex items-start space-x-3">
-                                                        <icons.Stethoscope className="text-blue-600 mt-1" size={20} />
-                                                        <div className="flex-1">
-                                                            <div className="flex justify-between items-start">
-                                                                <div>
-                                                                    <h3 className="font-semibold text-slate-800">{service.name}</h3>
-                                                                    {service.description && (
-                                                                        <p className="text-slate-600 text-sm mt-1">{service.description}</p>
-                                                                    )}
-                                                                    <p className="text-slate-500 text-sm mt-1">{service.time} perc</p>
-                                                                </div>
-                                                                <span className="text-blue-600 font-bold text-lg">
-                                                                    {service.price.toLocaleString()} Ft
-                                                                </span>
-                                                            </div>
-                                                        </div>
-                                                    </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-slate-700 mb-2">E-mail cím *</label>
+                                            <div className="relative">
+                                                <div style={{position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)'}}>
+                                                    <icons.Mail />
                                                 </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                );
-
-                            case 7:
-                                return (
-                                    <div className="space-y-6">
-                                        <div>
-                                            <h2 className="text-2xl font-bold text-slate-800 mb-2">Személyes adatok</h2>
-                                            <p className="text-slate-600">Kérjük, adja meg az alábbi adatokat</p>
-                                        </div>
-                                        <div className="space-y-4">
-                                            <div>
-                                                <label className="block text-sm font-medium text-slate-700 mb-2">Teljes név *</label>
                                                 <input
-                                                    type="text"
+                                                    type="email"
                                                     className="medical-input"
-                                                    placeholder="Adja meg a teljes nevét"
-                                                    value={formData.personalData.fullName}
+                                                    style={{paddingLeft: '40px'}}
+                                                    placeholder="pelda@email.hu"
+                                                    value={formData.personalData.email}
                                                     onChange={(e) => setFormData(prev => ({
                                                         ...prev,
-                                                        personalData: { ...prev.personalData, fullName: e.target.value }
+                                                        personalData: { ...prev.personalData, email: e.target.value }
                                                     }))}
                                                 />
                                             </div>
-                                            <div>
-                                                <label className="block text-sm font-medium text-slate-700 mb-2">E-mail cím *</label>
-                                                <div className="relative">
-                                                    <icons.Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" size={16} />
-                                                    <input
-                                                        type="email"
-                                                        className="medical-input pl-10"
-                                                        placeholder="pelda@email.hu"
-                                                        value={formData.personalData.email}
-                                                        onChange={(e) => setFormData(prev => ({
-                                                            ...prev,
-                                                            personalData: { ...prev.personalData, email: e.target.value }
-                                                        }))}
-                                                    />
-                                                </div>
-                                            </div>
-                                            <div>
-                                                <label className="block text-sm font-medium text-slate-700 mb-2">Telefonszám *</label>
-                                                <div className="relative">
-                                                    <icons.Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" size={16} />
-                                                    <input
-                                                        type="tel"
-                                                        className="medical-input pl-10"
-                                                        placeholder="+36 30 123 4567"
-                                                        value={formData.personalData.phone}
-                                                        onChange={(e) => setFormData(prev => ({
-                                                            ...prev,
-                                                            personalData: { ...prev.personalData, phone: e.target.value }
-                                                        }))}
-                                                    />
-                                                </div>
-                                            </div>
                                         </div>
-                                    </div>
-                                );
-
-                            case 8:
-                                return (
-                                    <div className="space-y-6">
                                         <div>
-                                            <h2 className="text-2xl font-bold text-slate-800 mb-2">Összegzés</h2>
-                                            <p className="text-slate-600">Ellenőrizd a foglalás adatait</p>
-                                        </div>
-                                        <div className="bg-slate-50 rounded-xl p-6 space-y-4">
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                <div>
-                                                    <h4 className="font-medium text-slate-700 mb-2">Helyszín</h4>
-                                                    <p className="text-slate-900">{formData.location?.name}</p>
-                                                    <p className="text-slate-600 text-sm">{formData.location?.location}</p>
+                                            <label className="block text-sm font-medium text-slate-700 mb-2">Telefonszám *</label>
+                                            <div className="relative">
+                                                <div style={{position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)'}}>
+                                                    <icons.Phone />
                                                 </div>
-                                                <div>
-                                                    <h4 className="font-medium text-slate-700 mb-2">Időpont</h4>
-                                                    <p className="text-slate-900">{formData.date}</p>
-                                                    <p className="text-slate-600 text-sm">{formData.time}</p>
-                                                </div>
-                                                <div>
-                                                    <h4 className="font-medium text-slate-700 mb-2">Terapeuta</h4>
-                                                    <p className="text-slate-900">{formData.therapist?.name}</p>
-                                                    <p className="text-slate-600 text-sm">{formData.therapist?.role}</p>
-                                                </div>
-                                                <div>
-                                                    <h4 className="font-medium text-slate-700 mb-2">Szolgáltatás</h4>
-                                                    <p className="text-slate-900">{formData.service?.name}</p>
-                                                    <p className="text-slate-600 text-sm">{formData.service?.price.toLocaleString()} Ft</p>
-                                                </div>
-                                                <div className="md:col-span-2">
-                                                    <h4 className="font-medium text-slate-700 mb-2">Személyes adatok</h4>
-                                                    <p className="text-slate-900">{formData.personalData.fullName}</p>
-                                                    <p className="text-slate-600 text-sm">{formData.personalData.email}</p>
-                                                    <p className="text-slate-600 text-sm">{formData.personalData.phone}</p>
-                                                </div>
+                                                <input
+                                                    type="tel"
+                                                    className="medical-input"
+                                                    style={{paddingLeft: '40px'}}
+                                                    placeholder="+36 30 123 4567"
+                                                    value={formData.personalData.phone}
+                                                    onChange={(e) => setFormData(prev => ({
+                                                        ...prev,
+                                                        personalData: { ...prev.personalData, phone: e.target.value }
+                                                    }))}
+                                                />
                                             </div>
                                         </div>
                                     </div>
-                                );
-
-                            default:
-                                return null;
-                        }
-                    };
-
-                    return (
-                        <div className="max-w-4xl mx-auto p-6">
-                            <div className="medical-container p-8">
-                                {renderProgressBar()}
-                                <div className="min-h-96">
-                                    {renderStep()}
                                 </div>
-                                <div className="flex justify-between mt-8 pt-6 border-t border-slate-200">
+                            );
+
+                        case 8:
+                            return (
+                                <div className="space-y-6">
+                                    <div>
+                                        <h2 className="text-2xl font-bold text-slate-800 mb-2">Összegzés</h2>
+                                        <p className="text-slate-600">Ellenőrizd a foglalás adatait</p>
+                                    </div>
+                                    <div className="bg-slate-50 rounded-xl p-6 space-y-4">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div>
+                                                <h4 className="font-medium text-slate-700 mb-2">Helyszín</h4>
+                                                <p className="text-slate-900">{formData.location?.name}</p>
+                                                <p className="text-slate-600 text-sm">{formData.location?.location}</p>
+                                            </div>
+                                            <div>
+                                                <h4 className="font-medium text-slate-700 mb-2">Időpont</h4>
+                                                <p className="text-slate-900">{formData.date}</p>
+                                                <p className="text-slate-600 text-sm">{formData.time}</p>
+                                            </div>
+                                            <div>
+                                                <h4 className="font-medium text-slate-700 mb-2">Terapeuta</h4>
+                                                <p className="text-slate-900">{formData.therapist?.name}</p>
+                                                <p className="text-slate-600 text-sm">{formData.therapist?.role}</p>
+                                            </div>
+                                            <div>
+                                                <h4 className="font-medium text-slate-700 mb-2">Szolgáltatás</h4>
+                                                <p className="text-slate-900">{formData.service?.name}</p>
+                                                <p className="text-slate-600 text-sm">{formData.service?.price.toLocaleString()} Ft</p>
+                                            </div>
+                                            <div style={{gridColumn: 'span 2'}}>
+                                                <h4 className="font-medium text-slate-700 mb-2">Személyes adatok</h4>
+                                                <p className="text-slate-900">{formData.personalData.fullName}</p>
+                                                <p className="text-slate-600 text-sm">{formData.personalData.email}</p>
+                                                <p className="text-slate-600 text-sm">{formData.personalData.phone}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+
+                        default:
+                            return null;
+                    }
+                };
+
+                return (
+                    <div className="max-w-4xl mx-auto p-6">
+                        <div className="medical-container p-8">
+                            {renderProgressBar()}
+                            <div style={{minHeight: '384px'}}>
+                                {renderStep()}
+                            </div>
+                            <div className="flex justify-between mt-8 pt-6 border-t border-slate-200">
+                                <button
+                                    onClick={handleBack}
+                                    disabled={currentStep === 1}
+                                    className="medical-button-secondary flex items-center space-x-2 disabled:opacity-50"
+                                >
+                                    <icons.ChevronLeft />
+                                    <span>Vissza</span>
+                                </button>
+                                {currentStep === 8 ?
                                     <button
-                                        onClick={handleBack}
-                                        disabled={currentStep === 1}
-                                        className="medical-button-secondary flex items-center space-x-2 disabled:opacity-50"
+                                        onClick={handleSubmit}
+                                        disabled={loading}
+                                        className="medical-button-primary flex items-center space-x-2"
                                     >
-                                        <icons.ChevronLeft size={20} />
-                                        <span>Vissza</span>
+                                        <span>{loading ? 'Foglalás...' : 'Foglalás véglegesítése'}</span>
+                                        <icons.CheckCircle />
                                     </button>
-                                    {currentStep === 8 ?
-                                        <button
-                                            onClick={handleSubmit}
-                                            disabled={loading}
-                                            className="medical-button-primary flex items-center space-x-2"
-                                        >
-                                            <span>{loading ? 'Foglalás...' : 'Foglalás véglegesítése'}</span>
-                                            <icons.CheckCircle size={20} />
-                                        </button>
-                                        :
-                                        <button
-                                            onClick={handleNext}
-                                            disabled={!canProceed()}
-                                            className="medical-button-primary flex items-center space-x-2"
-                                        >
-                                            <span>Tovább</span>
-                                            <icons.ChevronRight size={20} />
-                                        </button>
-                                    }
-                                </div>
+                                    :
+                                    <button
+                                        onClick={handleNext}
+                                        disabled={!canProceed()}
+                                        className="medical-button-primary flex items-center space-x-2"
+                                    >
+                                        <span>Tovább</span>
+                                        <icons.ChevronRight />
+                                    </button>
+                                }
                             </div>
                         </div>
-                    );
-                }
-
-                // Render the component with error boundary
-                console.log('Rendering ReservationSystem...');
-                ReactDOM.render(
-                    React.createElement(ErrorBoundary, null,
-                        React.createElement(ReservationSystem)
-                    ),
-                    document.getElementById('reservation-root')
-                );
-                
-                console.log('Component rendered successfully');
-            } catch (error) {
-                console.error('Error rendering component:', error);
-                document.getElementById('reservation-root').innerHTML = `
-                    <div class="error-message">
-                        <div>
-                            <h3>Hiba történt a foglalási rendszer betöltésekor</h3>
-                            <p>Technikai hiba: ${error.message}</p>
-                            <p>Kérjük, frissítse az oldalt vagy próbálja újra később.</p>
-                        </div>
                     </div>
-                `;
+                );
             }
+
+            // Render the component
+            console.log('Rendering ReservationSystem...');
+            const root = ReactDOM.createRoot(document.getElementById('reservation-root'));
+            root.render(<ReservationSystem />);
+            console.log('Component rendered successfully');
         }
     </script>
 </body>
