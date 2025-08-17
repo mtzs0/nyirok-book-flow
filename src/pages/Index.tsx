@@ -1,5 +1,5 @@
 
-import { ReservationSystem } from "@/components/ReservationSystem";
+import ReservationSystem from "@/components/ReservationSystem";
 
 const Index = () => {
   return <ReservationSystem />;
