@@ -3,7 +3,7 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   plugins: [react()],
   resolve: {
     alias: {
@@ -20,8 +20,9 @@ export default defineConfig({
         assetFileNames: 'assets/reservation-system.[hash].[ext]'
       }
     },
-    minify: 'terser',
+    // Only minify in production
+    minify: mode === 'production' ? 'terser' : false,
     sourcemap: false,
     cssCodeSplit: false,
   }
-});
+}));

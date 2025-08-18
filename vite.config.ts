@@ -29,8 +29,8 @@ export default defineConfig(({ mode }) => ({
         assetFileNames: 'assets/reservation-system.[hash].[ext]'
       }
     },
-    // Optimize for embedding
-    minify: 'terser',
+    // Only minify in production, not in development
+    minify: mode === 'production' ? 'terser' : false,
     sourcemap: false,
     cssCodeSplit: false,
   }
