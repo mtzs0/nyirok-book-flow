@@ -1,107 +1,122 @@
 
-# Reservation System Embedding Guide
+# Embedding Nyirok Reservation System in Elementor
 
-## Setup Instructions
+This guide shows you how to embed the reservation system into your Elementor WordPress site using an HTML widget.
 
-### 1. Configure GitHub Secrets
-
-In your GitHub repository, go to Settings > Secrets and variables > Actions, and add these secrets:
-
-- `VITE_SUPABASE_URL`: `https://aispzwadwdikqmtpmqii.supabase.co`
-- `VITE_SUPABASE_ANON_KEY`: `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFpc3B6d2Fkd2Rpa3FtdHBtcWlpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM2MjUwODYsImV4cCI6MjA2OTIwMTA4Nn0.OAziuXL-MAV60ZvrbD_77SmIttcbE113zKjwYsZ-0yE`
-
-### 2. Enable GitHub Pages
-
-1. Go to your repository Settings > Pages
-2. Set Source to "Deploy from a branch"
-3. Select branch: `gh-pages`
-4. Select folder: `/ (root)`
-5. Click Save
-
-### 3. WordPress/Elementor Integration
-
-After your first deployment (which happens automatically when you push to main/master), your reservation system will be available at:
-
+## Embed URL
+Your reservation system is hosted at:
 ```
-https://[your-username].github.io/[your-repo-name]/reservation-embed.html
+https://mtzs0.github.io/nyirok-book-flow/reservation-embed.html
 ```
 
-#### Method 1: Direct Iframe Embed
+## Option 1: Basic Iframe (Simple)
 
-Add this HTML to your WordPress page or Elementor HTML widget:
+Add an HTML widget in Elementor and paste this code:
 
 ```html
 <iframe 
-  src="https://[your-username].github.io/[your-repo-name]/reservation-embed.html"
-  width="100%" 
-  height="800" 
-  frameborder="0"
-  style="border: none; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);"
-  title="Reservation System">
+    src="https://mtzs0.github.io/nyirok-book-flow/reservation-embed.html"
+    width="100%"
+    height="600"
+    frameborder="0"
+    scrolling="no"
+    style="border: none; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
 </iframe>
 ```
 
-#### Method 2: Responsive Iframe with JavaScript
+## Option 2: Auto-Resizing Iframe (Recommended)
+
+For better user experience with automatic height adjustment, use this enhanced version:
 
 ```html
-<div id="reservation-container">
-  <iframe 
-    id="reservation-iframe"
-    src="https://[your-username].github.io/[your-repo-name]/reservation-embed.html"
-    width="100%" 
-    height="800" 
-    frameborder="0"
-    style="border: none; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);"
-    title="Reservation System">
-  </iframe>
+<div id="reservation-container" style="width: 100%; min-height: 600px;">
+    <iframe 
+        id="reservation-iframe"
+        src="https://mtzs0.github.io/nyirok-book-flow/reservation-embed.html"
+        width="100%"
+        height="600"
+        frameborder="0"
+        scrolling="no"
+        style="border: none; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); transition: height 0.3s ease;">
+    </iframe>
 </div>
 
 <script>
-// Auto-resize iframe based on content
-window.addEventListener('message', function(event) {
-  if (event.data.type === 'resize') {
+(function() {
     const iframe = document.getElementById('reservation-iframe');
-    if (iframe) {
-      iframe.style.height = event.data.height + 'px';
-    }
-  }
-});
+    
+    // Listen for resize messages from the iframe
+    window.addEventListener('message', function(event) {
+        // Verify the origin for security (replace with your actual GitHub Pages URL)
+        if (event.origin !== 'https://mtzs0.github.io') return;
+        
+        if (event.data && event.data.type === 'resize') {
+            const newHeight = Math.max(event.data.height, 400); // Minimum height of 400px
+            iframe.style.height = newHeight + 'px';
+            console.log('Iframe height adjusted to:', newHeight + 'px');
+        }
+    }, false);
+    
+    // Fallback: Try to adjust height after load
+    iframe.onload = function() {
+        setTimeout(function() {
+            try {
+                // This will only work if same-origin, but worth trying
+                const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                if (iframeDoc) {
+                    const height = Math.max(iframeDoc.body.scrollHeight, 400);
+                    iframe.style.height = height + 'px';
+                }
+            } catch (e) {
+                // Cross-origin access blocked, which is expected
+                console.log('Cross-origin iframe, using message-based resizing');
+            }
+        }, 1000);
+    };
+})();
 </script>
 ```
 
-#### Method 3: Elementor Integration
+## Key Features
 
-1. In Elementor, add an "HTML" widget
-2. Paste the iframe code from Method 1 or 2
-3. Adjust the height as needed (recommended: 800px minimum)
-4. Save and publish
+✅ **Automatic Updates**: When you push changes to GitHub, the embedded form updates automatically  
+✅ **No WordPress Dependencies**: Works independently of WordPress updates  
+✅ **Mobile Responsive**: Optimized for all screen sizes  
+✅ **Secure**: Runs in isolated iframe environment  
+✅ **Fast Loading**: Optimized build with CDN delivery  
+✅ **Dynamic Resizing**: Automatically adjusts height based on content  
 
-### 4. Automatic Updates
+## Testing Your Embed
 
-Every time you push changes to your main/master branch:
-1. GitHub Actions automatically builds the project
-2. The embed version is updated on GitHub Pages
-3. Your WordPress site shows the latest version immediately
+1. **Preview in Elementor**: Use Elementor's preview mode to see how it looks
+2. **Test on Mobile**: Check responsiveness on different devices
+3. **Test Functionality**: Go through the entire reservation flow
+4. **Check Console**: Open browser dev tools to see any error messages
 
-### 5. Customization
+## Troubleshooting
 
-To modify styling or functionality:
-1. Edit the files in your repository
-2. Push to main/master branch
-3. Wait for GitHub Actions to complete (~2-3 minutes)
-4. Your embedded version will be updated automatically
+**Issue: Iframe shows scrollbars**
+- Use Option 2 (auto-resizing) instead of Option 1
+- The iframe will automatically adjust its height
 
-### 6. Troubleshooting
+**Issue: Content appears cut off**
+- The auto-resizing version should fix this
+- Make sure you're using the script provided in Option 2
 
-- **Blank iframe**: Check if GitHub Pages is enabled and deployment was successful
-- **Styling issues**: The embed version includes style isolation to prevent WordPress theme conflicts
-- **Loading errors**: Check browser console for CORS or network issues
-- **Data not loading**: Verify Supabase secrets are correctly set in GitHub
+**Issue: Iframe not loading**
+- Check that the URL is accessible: https://mtzs0.github.io/nyirok-book-flow/reservation-embed.html
+- Ensure your site allows iframe embeds
+- Check browser console for error messages
 
-### 7. Environment Variables
+**Issue: Styling conflicts**
+- The embed uses its own isolated styles
+- If needed, add custom CSS to the Elementor HTML widget
 
-The system automatically uses these Supabase settings:
-- Project URL: `https://aispzwadwdikqmtpmqii.supabase.co`
-- Anon Key: (configured in GitHub secrets)
+## Updates and Maintenance
 
-No additional configuration needed on the WordPress side.
+The GitHub integration will automatically deploy updates when you push changes to the repository. No manual intervention required on the WordPress side.
+
+The system will continue working indefinitely until you either:
+- Delete the GitHub repository
+- Disable GitHub Pages
+- Change the repository visibility to private
