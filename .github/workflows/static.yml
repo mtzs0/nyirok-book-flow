@@ -48,15 +48,9 @@ jobs:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
 
-      - name: Create embed files
+      - name: Create embed HTML file
         run: |
-          # Create embed directory
-          mkdir -p embed-dist
-          
-          # Copy built assets
-          cp -r dist-embed/* embed-dist/
-          
-          # Find the actual generated filenames
+          # Find the actual generated filenames in embed-dist
           JS_FILE=$(find embed-dist/assets -name "*.js" -type f | head -1 | sed 's|embed-dist/||')
           CSS_FILE=$(find embed-dist/assets -name "*.css" -type f | head -1 | sed 's|embed-dist/||')
           
