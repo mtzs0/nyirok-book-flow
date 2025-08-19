@@ -1,3 +1,4 @@
+
 # Deploy Reservation System to GitHub Pages
 name: Deploy Reservation System to Pages
 
@@ -41,8 +42,8 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build project
-        run: npm run build
+      - name: Build embed version
+        run: npm run build:embed
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
@@ -53,16 +54,23 @@ jobs:
           mkdir -p embed-dist
           
           # Copy built assets
-          cp -r dist/* embed-dist/
+          cp -r dist-embed/* embed-dist/
           
-          # Create the embed HTML file
-          cat > embed-dist/reservation-embed.html << 'EOF'
+          # Find the actual generated filenames
+          JS_FILE=$(find embed-dist/assets -name "*.js" -type f | head -1 | sed 's|embed-dist/||')
+          CSS_FILE=$(find embed-dist/assets -name "*.css" -type f | head -1 | sed 's|embed-dist/||')
+          
+          echo "Found JS file: $JS_FILE"
+          echo "Found CSS file: $CSS_FILE"
+          
+          # Create the embed HTML file with dynamic asset references
+          cat > embed-dist/reservation-embed.html << EOF
           <!DOCTYPE html>
           <html lang="hu">
           <head>
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Reservation System</title>
+            <title>Foglalási Rendszer</title>
             <style>
               body {
                 margin: 0;
@@ -83,11 +91,11 @@ jobs:
                 box-sizing: border-box;
               }
             </style>
+            <link rel="stylesheet" href="./$CSS_FILE">
           </head>
           <body>
             <div id="root"></div>
-            <script type="module" crossorigin src="./assets/reservation-system.js"></script>
-            <link rel="stylesheet" href="./assets/reservation-system.css">
+            <script type="module" crossorigin src="./$JS_FILE"></script>
           </body>
           </html>
           EOF
