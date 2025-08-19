@@ -745,43 +745,45 @@ export default function ReservationSystem() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-6 bg-white min-h-screen">
-      <div className="medical-container p-8 bg-white">
-        {renderProgressBar()}
-        
-        <div className="min-h-96">
-          {renderStep()}
-        </div>
-        
-        <div className="flex justify-between mt-8 pt-6 border-t border-slate-200">
-          <button
-            onClick={handleBack}
-            disabled={currentStep === 1}
-            className="medical-button-secondary flex items-center space-x-2 disabled:opacity-50"
-          >
-            <ChevronLeft size={20} />
-            <span>Vissza</span>
-          </button>
+    <div className="w-full bg-white min-h-screen">
+      <div className="max-w-4xl mx-auto p-6 bg-white">
+        <div className="bg-white p-8 rounded-lg shadow-sm border border-slate-200">
+          {renderProgressBar()}
           
-          {currentStep === 8 ? (
+          <div className="min-h-96 bg-white">
+            {renderStep()}
+          </div>
+          
+          <div className="flex justify-between mt-8 pt-6 border-t border-slate-200 bg-white">
             <button
-              onClick={handleSubmit}
-              disabled={loading}
-              className="medical-button-primary flex items-center space-x-2"
+              onClick={handleBack}
+              disabled={currentStep === 1}
+              className="medical-button-secondary flex items-center space-x-2 disabled:opacity-50"
             >
-              {loading ? 'Foglalás...' : 'Foglalás véglegesítése'}
-              <CheckCircle size={20} />
+              <ChevronLeft size={20} />
+              <span>Vissza</span>
             </button>
-          ) : (
-            <button
-              onClick={handleNext}
-              disabled={!canProceed()}
-              className="medical-button-primary flex items-center space-x-2"
-            >
-              <span>Tovább</span>
-              <ChevronRight size={20} />
-            </button>
-          )}
+            
+            {currentStep === 8 ? (
+              <button
+                onClick={handleSubmit}
+                disabled={loading}
+                className="medical-button-primary flex items-center space-x-2"
+              >
+                {loading ? 'Foglalás...' : 'Foglalás véglegesítése'}
+                <CheckCircle size={20} />
+              </button>
+            ) : (
+              <button
+                onClick={handleNext}
+                disabled={!canProceed()}
+                className="medical-button-primary flex items-center space-x-2"
+              >
+                <span>Tovább</span>
+                <ChevronRight size={20} />
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>
