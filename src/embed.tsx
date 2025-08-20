@@ -26,18 +26,22 @@ function getContentHeight(): number {
 function reportHeight() {
   const currentHeight = getContentHeight();
   
-  // Only report if height changed significantly (more than 10px difference)
-  if (Math.abs(currentHeight - lastReportedHeight) > 10) {
+  // Only report if height changed significantly (more than 5px difference)
+  if (Math.abs(currentHeight - lastReportedHeight) > 5) {
     lastReportedHeight = currentHeight;
     
-    // Send height to parent window
+    // Send height to parent window with better error handling
     if (window.parent !== window) {
-      window.parent.postMessage({
-        type: 'heightUpdate',
-        height: currentHeight
-      }, '*');
-      
-      console.log('Height reported to parent:', currentHeight);
+      try {
+        window.parent.postMessage({
+          type: 'heightUpdate',
+          height: currentHeight + 20 // Add small buffer
+        }, '*');
+        
+        console.log('Height reported to parent:', currentHeight + 20);
+      } catch (error) {
+        console.error('Failed to send height to parent:', error);
+      }
     }
   }
 }
@@ -46,7 +50,7 @@ function setupHeightObservers() {
   // ResizeObserver to watch for element size changes
   if (window.ResizeObserver) {
     resizeObserver = new ResizeObserver(() => {
-      setTimeout(reportHeight, 100); // Debounce slightly
+      setTimeout(reportHeight, 50); // Faster response
     });
     
     // Observe the root element
@@ -61,7 +65,7 @@ function setupHeightObservers() {
   
   // MutationObserver to watch for DOM changes
   mutationObserver = new MutationObserver(() => {
-    setTimeout(reportHeight, 150); // Slightly longer debounce for DOM changes
+    setTimeout(reportHeight, 100);
   });
   
   mutationObserver.observe(document.body, {
@@ -112,7 +116,7 @@ window.addEventListener('beforeunload', () => {
   }
 });
 
-// Add iframe-specific styles
+// Add iframe-specific styles for better embedding
 const style = document.createElement('style');
 style.textContent = `
   html, body {
@@ -121,12 +125,14 @@ style.textContent = `
     overflow-x: hidden !important;
     overflow-y: hidden !important;
     background: white !important;
+    min-height: auto !important;
   }
   
   #root {
     width: 100% !important;
     overflow: visible !important;
     background: white !important;
+    min-height: auto !important;
   }
   
   .reservation-embed {
@@ -137,6 +143,7 @@ style.textContent = `
     box-sizing: border-box !important;
     overflow: visible !important;
     background: white !important;
+    min-height: auto !important;
   }
   
   .reservation-embed .medical-container {
@@ -146,6 +153,7 @@ style.textContent = `
     padding: 2rem !important;
     background: white !important;
     overflow: visible !important;
+    min-height: auto !important;
   }
   
   /* Ensure all containers have white background and proper overflow */
@@ -153,9 +161,12 @@ style.textContent = `
     box-sizing: border-box !important;
   }
   
+  /* Remove any blue/slate backgrounds */
   .reservation-embed .bg-slate-50,
   .reservation-embed .bg-gray-50,
-  .reservation-embed .bg-slate-100 {
+  .reservation-embed .bg-slate-100,
+  .reservation-embed .bg-blue-50,
+  .reservation-embed .bg-blue-100 {
     background-color: white !important;
   }
   
@@ -165,41 +176,48 @@ style.textContent = `
     overflow: visible !important;
   }
   
-  /* Ensure text sizes are consistent */
+  /* Ensure consistent styling */
   .reservation-embed h2 {
     font-size: 1.5rem !important;
     line-height: 2rem !important;
+    color: #1f2937 !important;
   }
   
   .reservation-embed h3 {
     font-size: 1.125rem !important;
     line-height: 1.75rem !important;
+    color: #1f2937 !important;
   }
   
   .reservation-embed p {
     font-size: 0.875rem !important;
     line-height: 1.25rem !important;
+    color: #4b5563 !important;
   }
   
-  /* Button and form styling */
+  /* Button styling */
   .reservation-embed button {
-    border: 1px solid #e2e8f0 !important;
+    border: 1px solid #d1d5db !important;
     transition: all 0.2s ease !important;
   }
   
-  .reservation-embed button:hover {
-    background-color: #f1f5f9 !important;
-    border-color: #cbd5e1 !important;
+  .reservation-embed button:hover:not(:disabled) {
+    background-color: #f9fafb !important;
+    border-color: #9ca3af !important;
   }
   
   .reservation-embed button:focus {
-    outline: 2px solid #3b82f6 !important;
+    outline: 2px solid #10b981 !important;
     outline-offset: 2px !important;
   }
   
-  .reservation-embed .bg-blue-600 {
-    background-color: #2563eb !important;
+  .reservation-embed .bg-green-600 {
+    background-color: #059669 !important;
     color: white !important;
+  }
+  
+  .reservation-embed .bg-green-600:hover {
+    background-color: #047857 !important;
   }
 `;
 document.head.appendChild(style);

@@ -389,12 +389,12 @@ export default function ReservationSystem() {
           disabled={isDisabled}
           className={`h-10 w-10 rounded-lg text-sm font-medium transition-colors ${
             isSelected
-              ? 'bg-blue-600 text-white'
+              ? 'bg-green-600 text-white'
               : isToday
-              ? 'bg-blue-100 text-blue-600'
+              ? 'bg-green-100 text-green-600'
               : isDisabled
-              ? 'text-slate-300 cursor-not-allowed'
-              : 'hover:bg-slate-100 text-slate-700'
+              ? 'text-gray-300 cursor-not-allowed'
+              : 'hover:bg-gray-100 text-gray-700'
           }`}
         >
           {day}
@@ -403,28 +403,28 @@ export default function ReservationSystem() {
     }
     
     return (
-      <div className="bg-white rounded-lg border border-slate-200 p-4">
+      <div className="bg-white rounded-lg border border-gray-200 p-4">
         <div className="flex items-center justify-between mb-4">
           <button
             onClick={() => navigateCalendar('prev')}
-            className="p-1 hover:bg-slate-100 rounded"
+            className="p-1 hover:bg-gray-100 rounded"
           >
-            <ChevronLeft size={20} className="text-slate-600" />
+            <ChevronLeft size={20} className="text-gray-600" />
           </button>
-          <h3 className="text-lg font-semibold text-slate-800">
+          <h3 className="text-lg font-semibold text-gray-800">
             {monthNames[calendarDate.getMonth()]} {calendarDate.getFullYear()}
           </h3>
           <button
             onClick={() => navigateCalendar('next')}
-            className="p-1 hover:bg-slate-100 rounded"
+            className="p-1 hover:bg-gray-100 rounded"
           >
-            <ChevronRight size={20} className="text-slate-600" />
+            <ChevronRight size={20} className="text-gray-600" />
           </button>
         </div>
         
         <div className="grid grid-cols-7 gap-1 mb-2">
           {dayNames.map(day => (
-            <div key={day} className="h-10 w-10 flex items-center justify-center text-sm font-medium text-slate-500">
+            <div key={day} className="h-10 w-10 flex items-center justify-center text-sm font-medium text-gray-500">
               {day}
             </div>
           ))}
@@ -450,9 +450,9 @@ export default function ReservationSystem() {
             
             return (
               <div key={step.id} className="flex flex-col items-center">
-                <div className={`medical-step-indicator ${
-                  isCompleted ? 'medical-step-completed' : 
-                  isActive ? 'medical-step-active' : 'medical-step-pending'
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-colors ${
+                  isCompleted ? 'bg-green-600 border-green-600 text-white' : 
+                  isActive ? 'bg-white border-green-600 text-green-600' : 'bg-white border-gray-300 text-gray-400'
                 }`}>
                   <Icon size={16} />
                 </div>
@@ -461,9 +461,9 @@ export default function ReservationSystem() {
             );
           })}
         </div>
-        <div className="medical-progress-bar">
+        <div className="w-full bg-gray-200 rounded-full h-2">
           <div 
-            className="medical-progress-fill" 
+            className="bg-green-600 h-2 rounded-full transition-all duration-300" 
             style={{ width: `${progress}%` }}
           />
         </div>
@@ -477,14 +477,14 @@ export default function ReservationSystem() {
         return (
           <div className="space-y-6">
             <div>
-              <h2 className="text-2xl font-bold text-slate-800 mb-2">Nyilatkozat</h2>
-              <p className="text-slate-600">Az időpontfoglalás előtt kérem jelölje be, ha az alábbiak közül valamelyik érvényes önre. Ez alapján az önnek leginkább megfelelő terapeutát tudjuk kiválasztani.</p>
+              <h2 className="text-2xl font-bold text-gray-800 mb-2">Nyilatkozat</h2>
+              <p className="text-gray-600">Az időpontfoglalás előtt kérem jelölje be, ha az alábbiak közül valamelyik érvényes önre. Ez alapján az önnek leginkább megfelelő terapeutát tudjuk kiválasztani.</p>
             </div>
             <div className="space-y-3">
               {STATEMENTS.map((statement, index) => (
                 <div
                   key={index}
-                  className={`medical-option-card ${formData.statements.includes(statement) ? 'medical-option-selected' : ''}`}
+                  className={`p-4 border rounded-lg cursor-pointer transition-colors ${formData.statements.includes(statement) ? 'border-green-600 bg-green-50' : 'border-gray-200 bg-white hover:border-gray-300'}`}
                   onClick={() => handleStatementChange(statement)}
                 >
                   <div className="flex items-start space-x-3">
@@ -492,9 +492,9 @@ export default function ReservationSystem() {
                       type="checkbox"
                       checked={formData.statements.includes(statement)}
                       onChange={() => {}}
-                      className="mt-1 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                      className="mt-1 rounded border-gray-300 text-green-600 focus:ring-green-500"
                     />
-                    <label className={`text-slate-700 cursor-pointer ${index === STATEMENTS.length - 1 ? 'font-semibold' : ''}`}>
+                    <label className={`text-gray-700 cursor-pointer ${index === STATEMENTS.length - 1 ? 'font-semibold' : ''}`}>
                       {statement}
                     </label>
                   </div>
@@ -508,21 +508,21 @@ export default function ReservationSystem() {
         return (
           <div className="space-y-6">
             <div>
-              <h2 className="text-2xl font-bold text-slate-800 mb-2">Válassz helyszínt</h2>
-              <p className="text-slate-600">Hol szeretnéd igénybe venni a szolgáltatást?</p>
+              <h2 className="text-2xl font-bold text-gray-800 mb-2">Válassz helyszínt</h2>
+              <p className="text-gray-600">Hol szeretnéd igénybe venni a szolgáltatást?</p>
             </div>
             <div className="grid gap-4">
               {locations.map((location) => (
                 <div
                   key={location.id}
-                  className={`medical-option-card ${formData.location?.id === location.id ? 'medical-option-selected' : ''}`}
+                  className={`p-4 border rounded-lg cursor-pointer transition-colors ${formData.location?.id === location.id ? 'border-green-600 bg-green-50' : 'border-gray-200 bg-white hover:border-gray-300'}`}
                   onClick={() => setFormData(prev => ({ ...prev, location }))}
                 >
                   <div className="flex items-center space-x-3">
-                    <MapPin className="text-blue-600" size={20} />
+                    <MapPin className="text-green-600" size={20} />
                     <div>
-                      <h3 className="font-semibold text-slate-800">{location.name}</h3>
-                      <p className="text-slate-600 text-sm">{location.location}</p>
+                      <h3 className="font-semibold text-gray-800">{location.name}</h3>
+                      <p className="text-gray-600 text-sm">{location.location}</p>
                     </div>
                   </div>
                 </div>
@@ -535,8 +535,8 @@ export default function ReservationSystem() {
         return (
           <div className="space-y-6">
             <div>
-              <h2 className="text-2xl font-bold text-slate-800 mb-2">Válassz dátumot</h2>
-              <p className="text-slate-600">Mikor szeretnél időpontot foglalni?</p>
+              <h2 className="text-2xl font-bold text-gray-800 mb-2">Válassz dátumot</h2>
+              <p className="text-gray-600">Mikor szeretnél időpontot foglalni?</p>
             </div>
             <div className="flex justify-center">
               {renderCalendar()}
@@ -548,8 +548,8 @@ export default function ReservationSystem() {
         return (
           <div className="space-y-6">
             <div>
-              <h2 className="text-2xl font-bold text-slate-800 mb-2">Válassz időpontot</h2>
-              <p className="text-slate-600">Milyen időpontban szeretnél időpontot?</p>
+              <h2 className="text-2xl font-bold text-gray-800 mb-2">Válassz időpontot</h2>
+              <p className="text-gray-600">Milyen időpontban szeretnél időpontot?</p>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
               {TIME_SLOTS.map((timeSlot) => {
@@ -557,15 +557,15 @@ export default function ReservationSystem() {
                 return (
                   <div
                     key={timeSlot}
-                    className={`medical-option-card ${
-                      formData.time === timeSlot ? 'medical-option-selected' : 
-                      !isAvailable ? 'medical-option-disabled' : ''
+                    className={`p-4 border rounded-lg cursor-pointer transition-colors ${
+                      formData.time === timeSlot ? 'border-green-600 bg-green-50' : 
+                      !isAvailable ? 'border-gray-200 bg-gray-100 cursor-not-allowed' : 'border-gray-200 bg-white hover:border-gray-300'
                     }`}
                     onClick={() => isAvailable && setFormData(prev => ({ ...prev, time: timeSlot }))}
                   >
                     <div className="flex items-center justify-center space-x-2">
-                      <Clock size={16} className={isAvailable ? 'text-blue-600' : 'text-slate-400'} />
-                      <span className={`font-medium ${isAvailable ? 'text-slate-800' : 'text-slate-400'}`}>
+                      <Clock size={16} className={isAvailable ? 'text-green-600' : 'text-gray-400'} />
+                      <span className={`font-medium ${isAvailable ? 'text-gray-800' : 'text-gray-400'}`}>
                         {timeSlot}
                       </span>
                     </div>
@@ -581,30 +581,30 @@ export default function ReservationSystem() {
         return (
           <div className="space-y-6">
             <div>
-              <h2 className="text-2xl font-bold text-slate-800 mb-2">Válassz terapeutát</h2>
-              <p className="text-slate-600">Ki végezze el a kezelést?</p>
+              <h2 className="text-2xl font-bold text-gray-800 mb-2">Válassz terapeutát</h2>
+              <p className="text-gray-600">Ki végezze el a kezelést?</p>
             </div>
             <div className="space-y-4">
               {availableTherapists.map((therapist) => (
                 <div
                   key={therapist.id}
-                  className={`medical-option-card ${formData.therapist?.id === therapist.id ? 'medical-option-selected' : ''}`}
+                  className={`p-4 border rounded-lg cursor-pointer transition-colors ${formData.therapist?.id === therapist.id ? 'border-green-600 bg-green-50' : 'border-gray-200 bg-white hover:border-gray-300'}`}
                   onClick={() => setFormData(prev => ({ ...prev, therapist }))}
                 >
                   <div className="flex items-start space-x-3">
-                    <User className="text-blue-600 mt-1" size={20} />
+                    <User className="text-green-600 mt-1" size={20} />
                     <div className="flex-1">
                       <div className="flex items-center space-x-2">
-                        <h3 className="font-semibold text-slate-800">{therapist.name}</h3>
+                        <h3 className="font-semibold text-gray-800">{therapist.name}</h3>
                         {therapist.expert && (
                           <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">
                             Szakértő
                           </span>
                         )}
                       </div>
-                      <p className="text-slate-600 text-sm">{therapist.role}</p>
+                      <p className="text-gray-600 text-sm">{therapist.role}</p>
                       {therapist.description && (
-                        <p className="text-slate-500 text-sm mt-1">{therapist.description}</p>
+                        <p className="text-gray-500 text-sm mt-1">{therapist.description}</p>
                       )}
                     </div>
                   </div>
@@ -618,28 +618,28 @@ export default function ReservationSystem() {
         return (
           <div className="space-y-6">
             <div>
-              <h2 className="text-2xl font-bold text-slate-800 mb-2">Válassz szolgáltatást</h2>
-              <p className="text-slate-600">Melyik kezelést szeretnéd?</p>
+              <h2 className="text-2xl font-bold text-gray-800 mb-2">Válassz szolgáltatást</h2>
+              <p className="text-gray-600">Melyik kezelést szeretnéd?</p>
             </div>
             <div className="space-y-4">
               {services.map((service) => (
                 <div
                   key={service.id}
-                  className={`medical-option-card ${formData.service?.id === service.id ? 'medical-option-selected' : ''}`}
+                  className={`p-4 border rounded-lg cursor-pointer transition-colors ${formData.service?.id === service.id ? 'border-green-600 bg-green-50' : 'border-gray-200 bg-white hover:border-gray-300'}`}
                   onClick={() => setFormData(prev => ({ ...prev, service }))}
                 >
                   <div className="flex items-start space-x-3">
-                    <Stethoscope className="text-blue-600 mt-1" size={20} />
+                    <Stethoscope className="text-green-600 mt-1" size={20} />
                     <div className="flex-1">
                       <div className="flex justify-between items-start">
                         <div>
-                          <h3 className="font-semibold text-slate-800">{service.name}</h3>
+                          <h3 className="font-semibold text-gray-800">{service.name}</h3>
                           {service.description && (
-                            <p className="text-slate-600 text-sm mt-1">{service.description}</p>
+                            <p className="text-gray-600 text-sm mt-1">{service.description}</p>
                           )}
-                          <p className="text-slate-500 text-sm mt-1">{service.time} perc</p>
+                          <p className="text-gray-500 text-sm mt-1">{service.time} perc</p>
                         </div>
-                        <span className="text-blue-600 font-bold text-lg">
+                        <span className="text-green-600 font-bold text-lg">
                           {service.price.toLocaleString()} Ft
                         </span>
                       </div>
@@ -655,17 +655,17 @@ export default function ReservationSystem() {
         return (
           <div className="space-y-6">
             <div>
-              <h2 className="text-2xl font-bold text-slate-800 mb-2">Személyes adatok</h2>
-              <p className="text-slate-600">Kérjük, adja meg az alábbi adatokat</p>
+              <h2 className="text-2xl font-bold text-gray-800 mb-2">Személyes adatok</h2>
+              <p className="text-gray-600">Kérjük, adja meg az alábbi adatokat</p>
             </div>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   Teljes név *
                 </label>
                 <input
                   type="text"
-                  className="medical-input"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
                   placeholder="Adja meg a teljes nevét"
                   value={formData.personalData.fullName}
                   onChange={(e) => setFormData(prev => ({
@@ -675,14 +675,14 @@ export default function ReservationSystem() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   E-mail cím *
                 </label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" size={16} />
+                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
                   <input
                     type="email"
-                    className="medical-input pl-10"
+                    className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
                     placeholder="pelda@email.hu"
                     value={formData.personalData.email}
                     onChange={(e) => setFormData(prev => ({
@@ -693,14 +693,14 @@ export default function ReservationSystem() {
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   Telefonszám *
                 </label>
                 <div className="relative">
-                  <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" size={16} />
+                  <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
                   <input
                     type="tel"
-                    className="medical-input pl-10"
+                    className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
                     placeholder="+36 30 123 4567"
                     value={formData.personalData.phone}
                     onChange={(e) => setFormData(prev => ({
@@ -718,36 +718,36 @@ export default function ReservationSystem() {
         return (
           <div className="space-y-6">
             <div>
-              <h2 className="text-2xl font-bold text-slate-800 mb-2">Összegzés</h2>
-              <p className="text-slate-600">Ellenőrizd a foglalás adatait</p>
+              <h2 className="text-2xl font-bold text-gray-800 mb-2">Összegzés</h2>
+              <p className="text-gray-600">Ellenőrizd a foglalás adatait</p>
             </div>
-            <div className="bg-slate-50 rounded-xl p-6 space-y-4">
+            <div className="bg-gray-50 rounded-xl p-6 space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <h4 className="font-medium text-slate-700 mb-2">Helyszín</h4>
-                  <p className="text-slate-900">{formData.location?.name}</p>
-                  <p className="text-slate-600 text-sm">{formData.location?.location}</p>
+                  <h4 className="font-medium text-gray-700 mb-2">Helyszín</h4>
+                  <p className="text-gray-900">{formData.location?.name}</p>
+                  <p className="text-gray-600 text-sm">{formData.location?.location}</p>
                 </div>
                 <div>
-                  <h4 className="font-medium text-slate-700 mb-2">Időpont</h4>
-                  <p className="text-slate-900">{formData.date}</p>
-                  <p className="text-slate-600 text-sm">{formData.time}</p>
+                  <h4 className="font-medium text-gray-700 mb-2">Időpont</h4>
+                  <p className="text-gray-900">{formData.date}</p>
+                  <p className="text-gray-600 text-sm">{formData.time}</p>
                 </div>
                 <div>
-                  <h4 className="font-medium text-slate-700 mb-2">Terapeuta</h4>
-                  <p className="text-slate-900">{formData.therapist?.name}</p>
-                  <p className="text-slate-600 text-sm">{formData.therapist?.role}</p>
+                  <h4 className="font-medium text-gray-700 mb-2">Terapeuta</h4>
+                  <p className="text-gray-900">{formData.therapist?.name}</p>
+                  <p className="text-gray-600 text-sm">{formData.therapist?.role}</p>
                 </div>
                 <div>
-                  <h4 className="font-medium text-slate-700 mb-2">Szolgáltatás</h4>
-                  <p className="text-slate-900">{formData.service?.name}</p>
-                  <p className="text-slate-600 text-sm">{formData.service?.price.toLocaleString()} Ft</p>
+                  <h4 className="font-medium text-gray-700 mb-2">Szolgáltatás</h4>
+                  <p className="text-gray-900">{formData.service?.name}</p>
+                  <p className="text-gray-600 text-sm">{formData.service?.price.toLocaleString()} Ft</p>
                 </div>
                 <div className="md:col-span-2">
-                  <h4 className="font-medium text-slate-700 mb-2">Személyes adatok</h4>
-                  <p className="text-slate-900">{formData.personalData.fullName}</p>
-                  <p className="text-slate-600 text-sm">{formData.personalData.email}</p>
-                  <p className="text-slate-600 text-sm">{formData.personalData.phone}</p>
+                  <h4 className="font-medium text-gray-700 mb-2">Személyes adatok</h4>
+                  <p className="text-gray-900">{formData.personalData.fullName}</p>
+                  <p className="text-gray-600 text-sm">{formData.personalData.email}</p>
+                  <p className="text-gray-600 text-sm">{formData.personalData.phone}</p>
                 </div>
               </div>
             </div>
@@ -762,18 +762,18 @@ export default function ReservationSystem() {
   return (
     <div className="w-full bg-white min-h-screen overflow-visible">
       <div className="max-w-4xl mx-auto p-6 bg-white overflow-visible">
-        <div className="bg-white p-8 rounded-lg shadow-sm border border-slate-200 overflow-visible">
+        <div className="bg-white p-8 rounded-lg shadow-sm border border-gray-200 overflow-visible">
           {renderProgressBar()}
           
           <div className="min-h-96 bg-white overflow-visible">
             {renderStep()}
           </div>
           
-          <div className="flex justify-between mt-8 pt-6 border-t border-slate-200 bg-white">
+          <div className="flex justify-between mt-8 pt-6 border-t border-gray-200 bg-white">
             <button
               onClick={handleBack}
               disabled={currentStep === 1}
-              className="medical-button-secondary flex items-center space-x-2 disabled:opacity-50"
+              className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors flex items-center space-x-2 disabled:opacity-50"
             >
               <ChevronLeft size={20} />
               <span>Vissza</span>
@@ -783,7 +783,7 @@ export default function ReservationSystem() {
               <button
                 onClick={handleSubmit}
                 disabled={loading}
-                className="medical-button-primary flex items-center space-x-2"
+                className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2"
               >
                 {loading ? 'Foglalás...' : 'Foglalás véglegesítése'}
                 <CheckCircle size={20} />
@@ -792,7 +792,7 @@ export default function ReservationSystem() {
               <button
                 onClick={handleNext}
                 disabled={!canProceed()}
-                className="medical-button-primary flex items-center space-x-2"
+                className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <span>Tovább</span>
                 <ChevronRight size={20} />

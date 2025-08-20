@@ -57,7 +57,7 @@ jobs:
           echo "Found JS file: $JS_FILE"
           echo "Found CSS file: $CSS_FILE"
           
-          # Create the embed HTML file with dynamic asset references
+          # Create the embed HTML file with dynamic asset references and PostMessage support
           cat > embed-dist/reservation-embed.html << EOF
           <!DOCTYPE html>
           <html lang="hu">
@@ -66,23 +66,29 @@ jobs:
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <title>Foglalási Rendszer</title>
             <style>
-              body {
-                margin: 0;
-                padding: 0;
+              html, body {
+                margin: 0 !important;
+                padding: 0 !important;
                 font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
-                background: transparent;
+                background: white !important;
+                overflow: hidden !important;
+                min-height: auto !important;
               }
               #root {
-                width: 100%;
-                min-height: 600px;
+                width: 100% !important;
+                min-height: auto !important;
+                background: white !important;
+                overflow: visible !important;
               }
-              /* Iframe-specific styles */
               .reservation-embed {
-                width: 100%;
-                max-width: none;
-                margin: 0;
-                padding: 20px;
-                box-sizing: border-box;
+                width: 100% !important;
+                max-width: none !important;
+                margin: 0 !important;
+                padding: 20px !important;
+                box-sizing: border-box !important;
+                background: white !important;
+                overflow: visible !important;
+                min-height: auto !important;
               }
             </style>
             <link rel="stylesheet" href="./$CSS_FILE">
