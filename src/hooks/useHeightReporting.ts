@@ -2,39 +2,47 @@
 import { useEffect, useRef } from 'react';
 
 export function useHeightReporting() {
-  const reportedHeightRef = useRef(0);
+  const hasReported = useRef(false);
   
   const reportHeight = () => {
-    // Only run in iframe context
-    if (window.parent === window) return;
+    // Only report once per component to prevent loops
+    if (hasReported.current || window.parent === window) return;
     
-    const body = document.body;
-    const html = document.documentElement;
+    hasReported.current = true;
     
-    const height = Math.max(
-      body.scrollHeight,
-      body.offsetHeight,
-      html.clientHeight,
-      html.scrollHeight,
-      html.offsetHeight
-    );
-    
-    // Only report if height changed significantly
-    if (Math.abs(height - reportedHeightRef.current) > 5) {
-      reportedHeightRef.current = height;
+    setTimeout(() => {
+      const body = document.body;
+      const html = document.documentElement;
       
-      window.parent.postMessage({
-        type: 'heightUpdate',
-        height: height
-      }, '*');
-    }
+      const height = Math.max(
+        body.scrollHeight,
+        body.offsetHeight,
+        html.clientHeight,
+        html.scrollHeight,
+        html.offsetHeight
+      );
+      
+      // Cap height at reasonable maximum
+      const cappedHeight = Math.min(height + 50, 2500);
+      
+      try {
+        window.parent.postMessage({
+          type: 'heightUpdate',
+          height: cappedHeight
+        }, '*');
+        
+        console.log('Component height reported:', cappedHeight);
+      } catch (error) {
+        console.error('Failed to report height:', error);
+      }
+    }, 200);
   };
   
   useEffect(() => {
-    // Report height on mount and after each render
-    const timer = setTimeout(reportHeight, 100);
+    // Only report on mount, not on every render
+    const timer = setTimeout(reportHeight, 300);
     return () => clearTimeout(timer);
-  });
+  }, []); // Empty dependency array - only run once
   
-  return reportHeight;
+  return () => {}; // Return empty function to prevent external calls
 }
