@@ -31,7 +31,7 @@
     <div class="embed-container">
         <iframe 
             id="reservation-iframe"
-            src="https://adorable-cactus-7ba22e.netlify.app/embed"
+            src="https://mtzs0.github.io/nyirok-book-flow/reservation-embed.html"
             scrolling="no"
             frameborder="0">
         </iframe>
@@ -40,44 +40,59 @@
     <script>
         let lastHeight = 0;
         let resizeTimer;
+        let retryCount = 0;
+        const maxRetries = 10;
+        
+        function updateIframeHeight(height) {
+            const iframe = document.getElementById('reservation-iframe');
+            const newHeight = Math.max(height + 100, 600); // Add extra padding
+            
+            if (Math.abs(newHeight - lastHeight) > 5) {
+                iframe.style.height = newHeight + 'px';
+                lastHeight = newHeight;
+                console.log('Iframe height updated to:', newHeight + 'px');
+                
+                // Reset retry count on successful update
+                retryCount = 0;
+            }
+        }
+        
+        function requestHeightUpdate() {
+            const iframe = document.getElementById('reservation-iframe');
+            if (iframe.contentWindow && retryCount < maxRetries) {
+                iframe.contentWindow.postMessage({
+                    type: 'requestHeight'
+                }, 'https://mtzs0.github.io');
+                retryCount++;
+            }
+        }
         
         // Listen for size updates from the iframe
         window.addEventListener('message', function(event) {
             // Verify origin for security
-            if (event.origin !== 'https://adorable-cactus-7ba22e.netlify.app') {
+            if (event.origin !== 'https://mtzs0.github.io') {
                 return;
             }
             
-            if (event.data && event.data.type === 'resize') {
-                const iframe = document.getElementById('reservation-iframe');
-                const newHeight = Math.max(event.data.height + 50, 600); // Add padding and minimum height
-                
-                // Only resize if there's a significant change
-                if (Math.abs(newHeight - lastHeight) > 10) {
-                    iframe.style.height = newHeight + 'px';
-                    lastHeight = newHeight;
-                    
-                    // Clear any existing timer
-                    clearTimeout(resizeTimer);
-                    
-                    // Set a timer to ensure we catch any delayed content changes
-                    resizeTimer = setTimeout(() => {
-                        // Request another height update in case content changed
-                        iframe.contentWindow.postMessage({type: 'requestResize'}, 'https://adorable-cactus-7ba22e.netlify.app');
-                    }, 500);
-                }
+            if (event.data && event.data.type === 'heightUpdate') {
+                updateIframeHeight(event.data.height);
             }
         });
 
-        // Initial setup
+        // Initial setup and periodic height checks
         window.addEventListener('load', function() {
             const iframe = document.getElementById('reservation-iframe');
             
-            // Wait for iframe to load then request initial size
             iframe.addEventListener('load', function() {
+                // Initial height request
                 setTimeout(() => {
-                    iframe.contentWindow.postMessage({type: 'requestResize'}, 'https://adorable-cactus-7ba22e.netlify.app');
-                }, 1000);
+                    requestHeightUpdate();
+                }, 500);
+                
+                // Periodic height checks for dynamic content
+                setInterval(() => {
+                    requestHeightUpdate();
+                }, 2000);
             });
         });
 
@@ -85,8 +100,7 @@
         window.addEventListener('resize', function() {
             clearTimeout(resizeTimer);
             resizeTimer = setTimeout(() => {
-                const iframe = document.getElementById('reservation-iframe');
-                iframe.contentWindow.postMessage({type: 'requestResize'}, 'https://adorable-cactus-7ba22e.netlify.app');
+                requestHeightUpdate();
             }, 250);
         });
     </script>

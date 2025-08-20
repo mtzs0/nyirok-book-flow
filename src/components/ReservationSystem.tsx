@@ -1,7 +1,7 @@
-
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Calendar, Clock, MapPin, User, Stethoscope, CreditCard, CheckCircle, ChevronRight, ChevronLeft, Mail, Phone } from 'lucide-react';
+import { useHeightReporting } from '@/hooks/useHeightReporting';
 
 interface Location {
   id: string;
@@ -74,6 +74,7 @@ const STEPS = [
 ];
 
 export default function ReservationSystem() {
+  const reportHeight = useHeightReporting();
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<FormData>({
     statements: [],
@@ -92,6 +93,16 @@ export default function ReservationSystem() {
   const [availableTimeSlots, setAvailableTimeSlots] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [calendarDate, setCalendarDate] = useState(new Date());
+
+  // Report height when current step changes
+  useEffect(() => {
+    setTimeout(reportHeight, 200);
+  }, [currentStep, reportHeight]);
+
+  // Report height when form data changes (particularly for dynamic content)
+  useEffect(() => {
+    setTimeout(reportHeight, 100);
+  }, [formData.location, formData.therapist, formData.service, reportHeight]);
 
   // Load initial data
   useEffect(() => {
@@ -225,12 +236,16 @@ export default function ReservationSystem() {
   const handleNext = () => {
     if (currentStep < 8) {
       setCurrentStep(prev => prev + 1);
+      // Report height after step change
+      setTimeout(reportHeight, 300);
     }
   };
 
   const handleBack = () => {
     if (currentStep > 1) {
       setCurrentStep(prev => prev - 1);
+      // Report height after step change
+      setTimeout(reportHeight, 300);
     }
   };
 
@@ -745,12 +760,12 @@ export default function ReservationSystem() {
   };
 
   return (
-    <div className="w-full bg-white min-h-screen">
-      <div className="max-w-4xl mx-auto p-6 bg-white">
-        <div className="bg-white p-8 rounded-lg shadow-sm border border-slate-200">
+    <div className="w-full bg-white min-h-screen overflow-visible">
+      <div className="max-w-4xl mx-auto p-6 bg-white overflow-visible">
+        <div className="bg-white p-8 rounded-lg shadow-sm border border-slate-200 overflow-visible">
           {renderProgressBar()}
           
-          <div className="min-h-96 bg-white">
+          <div className="min-h-96 bg-white overflow-visible">
             {renderStep()}
           </div>
           
