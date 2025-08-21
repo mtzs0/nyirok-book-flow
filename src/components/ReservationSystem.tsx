@@ -428,21 +428,21 @@ export default function ReservationSystem() {
     return (
       <div className="mb-8">
         <div className="flex justify-between items-center mb-4 overflow-x-auto">
-          <div className="flex justify-between items-center min-w-full px-2 md:px-0">
+          <div className="flex justify-between items-center w-full px-1 md:px-0 gap-1 md:gap-0">
             {STEPS.map((step, index) => {
               const Icon = step.icon;
               const isActive = currentStep === step.id;
               const isCompleted = currentStep > step.id;
               
               return (
-                <div key={step.id} className="flex flex-col items-center flex-shrink-0 min-w-0">
-                  <div className={`w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center border-2 transition-colors ${
+                <div key={step.id} className="flex flex-col items-center flex-shrink-0 min-w-0 flex-1 max-w-[12%] md:max-w-none">
+                  <div className={`w-6 h-6 md:w-10 md:h-10 rounded-full flex items-center justify-center border-2 transition-colors ${
                     isCompleted ? 'bg-green-600 border-green-600 text-white' : 
                     isActive ? 'bg-white border-green-600 text-green-600' : 'bg-white border-gray-300 text-gray-400'
                   }`}>
-                    <Icon size={12} className="md:w-4 md:h-4" />
+                    <Icon size={10} className="md:w-4 md:h-4" />
                   </div>
-                  <span className="text-xs mt-1 md:mt-2 text-center max-w-12 md:max-w-16 leading-tight">
+                  <span className="text-[10px] md:text-xs mt-1 md:mt-2 text-center leading-tight px-1">
                     {step.title}
                   </span>
                 </div>
