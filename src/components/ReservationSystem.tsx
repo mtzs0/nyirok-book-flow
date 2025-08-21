@@ -773,10 +773,10 @@ export default function ReservationSystem() {
   return (
     <div className="w-full bg-white">
       <div className="max-w-4xl mx-auto p-6 bg-white">
-        <div className="bg-white p-8 rounded-lg shadow-sm border border-gray-200" style={{ height: '805px' }}>
+        <div className="bg-white p-8 rounded-lg shadow-sm border border-gray-200" style={{ height: '900px' }}>
           {renderProgressBar()}
           
-          <div className="bg-white" style={{ height: '442px' }}>
+          <div className="bg-white" style={{ height: '537px' }}>
             {renderStep()}
           </div>
           
