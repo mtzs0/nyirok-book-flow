@@ -427,24 +427,28 @@ export default function ReservationSystem() {
     
     return (
       <div className="mb-8">
-        <div className="flex justify-between items-center mb-4">
-          {STEPS.map((step) => {
-            const Icon = step.icon;
-            const isActive = currentStep === step.id;
-            const isCompleted = currentStep > step.id;
-            
-            return (
-              <div key={step.id} className="flex flex-col items-center">
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-colors ${
-                  isCompleted ? 'bg-green-600 border-green-600 text-white' : 
-                  isActive ? 'bg-white border-green-600 text-green-600' : 'bg-white border-gray-300 text-gray-400'
-                }`}>
-                  <Icon size={16} />
+        <div className="flex justify-between items-center mb-4 overflow-x-auto">
+          <div className="flex justify-between items-center min-w-full px-2 md:px-0">
+            {STEPS.map((step, index) => {
+              const Icon = step.icon;
+              const isActive = currentStep === step.id;
+              const isCompleted = currentStep > step.id;
+              
+              return (
+                <div key={step.id} className="flex flex-col items-center flex-shrink-0 min-w-0">
+                  <div className={`w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center border-2 transition-colors ${
+                    isCompleted ? 'bg-green-600 border-green-600 text-white' : 
+                    isActive ? 'bg-white border-green-600 text-green-600' : 'bg-white border-gray-300 text-gray-400'
+                  }`}>
+                    <Icon size={12} className="md:w-4 md:h-4" />
+                  </div>
+                  <span className="text-xs mt-1 md:mt-2 text-center max-w-12 md:max-w-16 leading-tight">
+                    {step.title}
+                  </span>
                 </div>
-                <span className="text-xs mt-2 text-center max-w-16">{step.title}</span>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
         <div className="w-full bg-gray-200 rounded-full h-2">
           <div 
@@ -466,27 +470,29 @@ export default function ReservationSystem() {
               <p className="text-gray-600">Az időpontfoglalás előtt kérem jelölje be, ha az alábbiak közül valamelyik érvényes önre. Ez alapján az önnek leginkább megfelelő terapeutát tudjuk kiválasztani.</p>
             </div>
             <div className="flex-1 min-h-0">
-              <div className="space-y-3 h-full">
-                {STATEMENTS.map((statement, index) => (
-                  <div
-                    key={index}
-                    className={`p-4 border rounded-lg cursor-pointer transition-colors ${formData.statements.includes(statement) ? 'border-green-600 bg-green-50' : 'border-gray-200 bg-white hover:border-gray-300'}`}
-                    onClick={() => handleStatementChange(statement)}
-                  >
-                    <div className="flex items-start space-x-3">
-                      <input
-                        type="checkbox"
-                        checked={formData.statements.includes(statement)}
-                        onChange={() => {}}
-                        className="mt-1 rounded border-gray-300 text-green-600 focus:ring-green-500"
-                      />
-                      <label className={`text-gray-700 cursor-pointer ${index === STATEMENTS.length - 1 ? 'font-semibold' : ''}`}>
-                        {statement}
-                      </label>
+              <ScrollArea className="h-full">
+                <div className="space-y-3 pr-4">
+                  {STATEMENTS.map((statement, index) => (
+                    <div
+                      key={index}
+                      className={`p-4 border rounded-lg cursor-pointer transition-colors ${formData.statements.includes(statement) ? 'border-green-600 bg-green-50' : 'border-gray-200 bg-white hover:border-gray-300'}`}
+                      onClick={() => handleStatementChange(statement)}
+                    >
+                      <div className="flex items-start space-x-3">
+                        <input
+                          type="checkbox"
+                          checked={formData.statements.includes(statement)}
+                          onChange={() => {}}
+                          className="mt-1 rounded border-gray-300 text-green-600 focus:ring-green-500"
+                        />
+                        <label className={`text-gray-700 cursor-pointer ${index === STATEMENTS.length - 1 ? 'font-semibold' : ''}`}>
+                          {statement}
+                        </label>
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              </ScrollArea>
             </div>
           </div>
         );
@@ -767,10 +773,10 @@ export default function ReservationSystem() {
   return (
     <div className="w-full bg-white">
       <div className="max-w-4xl mx-auto p-6 bg-white">
-        <div className="bg-white p-8 rounded-lg shadow-sm border border-gray-200" style={{ height: '700px' }}>
+        <div className="bg-white p-8 rounded-lg shadow-sm border border-gray-200" style={{ height: '805px' }}>
           {renderProgressBar()}
           
-          <div className="h-96 bg-white">
+          <div className="bg-white" style={{ height: '442px' }}>
             {renderStep()}
           </div>
           
