@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Calendar, Clock, MapPin, User, Stethoscope, CreditCard, CheckCircle, ChevronRight, ChevronLeft, Mail, Phone } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface Location {
   id: string;
@@ -92,6 +93,7 @@ export default function ReservationSystem() {
   const [availableTimeSlots, setAvailableTimeSlots] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [calendarDate, setCalendarDate] = useState(new Date());
+  const isMobile = useIsMobile();
 
   // Load initial data
   useEffect(() => {
@@ -434,8 +436,13 @@ export default function ReservationSystem() {
               const isActive = currentStep === step.id;
               const isCompleted = currentStep > step.id;
               
+              // On mobile, only show the current step
+              if (isMobile && !isActive) {
+                return null;
+              }
+              
               return (
-                <div key={step.id} className="flex flex-col items-center flex-shrink-0 min-w-0 flex-1 max-w-[12%] md:max-w-none">
+                <div key={step.id} className={`flex flex-col items-center flex-shrink-0 min-w-0 ${isMobile ? 'flex-1' : 'flex-1 max-w-[12%] md:max-w-none'}`}>
                   <div className={`w-6 h-6 md:w-10 md:h-10 rounded-full flex items-center justify-center border-2 transition-colors ${
                     isCompleted ? 'bg-green-600 border-green-600 text-white' : 
                     isActive ? 'bg-white border-green-600 text-green-600' : 'bg-white border-gray-300 text-gray-400'
@@ -445,6 +452,11 @@ export default function ReservationSystem() {
                   <span className="text-[10px] md:text-xs mt-1 md:mt-2 text-center leading-tight px-1">
                     {step.title}
                   </span>
+                  {isMobile && (
+                    <span className="text-[8px] text-gray-500 mt-1">
+                      {currentStep} / {STEPS.length}
+                    </span>
+                  )}
                 </div>
               );
             })}
