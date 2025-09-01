@@ -478,18 +478,18 @@ export default function ReservationSystem() {
     switch (currentStep) {
       case 1:
         return (
-          <div className="space-y-6 h-full flex flex-col">
+          <div className="space-y-4 h-full flex flex-col">
             <div className="flex-shrink-0">
               <h2 className="text-2xl font-bold text-gray-800 mb-2">Nyilatkozat</h2>
-              <p className="text-gray-600">Az időpontfoglalás előtt kérem jelölje be, ha az alábbiak közül valamelyik érvényes önre. Ez alapján az önnek leginkább megfelelő terapeutát tudjuk kiválasztani.</p>
+              <p className="text-gray-600 text-sm">Az időpontfoglalás előtt kérem jelölje be, ha az alábbiak közül valamelyik érvényes önre. Ez alapján az önnek leginkább megfelelő terapeutát tudjuk kiválasztani.</p>
             </div>
             <div className="flex-1 min-h-0">
               <ScrollArea className="h-full">
-                <div className="space-y-3 pr-4">
+                <div className="space-y-2 pr-4">
                   {STATEMENTS.map((statement, index) => (
                     <div
                       key={index}
-                      className={`p-4 border rounded-lg cursor-pointer transition-colors ${formData.statements.includes(statement) ? 'border-green-600 bg-green-50' : 'border-gray-200 bg-white hover:border-gray-300'}`}
+                      className={`p-3 border rounded-lg cursor-pointer transition-colors ${formData.statements.includes(statement) ? 'border-green-600 bg-green-50' : 'border-gray-200 bg-white hover:border-gray-300'}`}
                       onClick={() => handleStatementChange(statement)}
                     >
                       <div className="flex items-start space-x-3">
@@ -497,9 +497,9 @@ export default function ReservationSystem() {
                           type="checkbox"
                           checked={formData.statements.includes(statement)}
                           onChange={() => {}}
-                          className="mt-1 rounded border-gray-300 text-green-600 focus:ring-green-500"
+                          className="mt-0.5 rounded border-gray-300 text-green-600 focus:ring-green-500"
                         />
-                        <label className={`text-gray-700 cursor-pointer ${index === STATEMENTS.length - 1 ? 'font-semibold' : ''}`}>
+                        <label className={`text-gray-700 cursor-pointer text-sm ${index === STATEMENTS.length - 1 ? 'font-semibold' : ''}`}>
                           {statement}
                         </label>
                       </div>
