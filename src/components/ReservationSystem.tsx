@@ -26,6 +26,7 @@ interface Service {
   description: string;
   price: number;
   time: number;
+  time_end: number;
 }
 
 interface Reservation {
@@ -654,7 +655,7 @@ export default function ReservationSystem() {
                               {service.description && (
                                 <p className="text-gray-600 text-sm mt-1">{service.description}</p>
                               )}
-                              <p className="text-gray-500 text-sm mt-1">{service.time} perc</p>
+                              <p className="text-gray-500 text-sm mt-1">{service.time}-{service.time_end} perc</p>
                             </div>
                             <span className="text-green-600 font-bold text-lg">
                               {service.price.toLocaleString()} Ft
