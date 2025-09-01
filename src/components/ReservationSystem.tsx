@@ -56,6 +56,7 @@ const STATEMENTS = [
   "Nyílt vagy fekélyes sebem van",
   "Sztómával rendelkezem",
   "Kiskorú gyerek kezelését igénylem",
+  "Onkológiai beteg vagyok",
   "A fentiek közül egyik sem érvényes rám nézve"
 ];
 
