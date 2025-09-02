@@ -47,6 +47,10 @@ interface FormData {
     fullName: string;
     email: string;
     phone: string;
+    iranyitoszam: string;
+    varos: string;
+    utca: string;
+    birthday: string;
   };
 }
 
@@ -85,7 +89,15 @@ export default function ReservationSystem() {
     time: '',
     therapist: null,
     service: null,
-    personalData: { fullName: '', email: '', phone: '' }
+    personalData: {
+      fullName: '',
+      email: '',
+      phone: '',
+      iranyitoszam: '',
+      varos: '',
+      utca: '',
+      birthday: '',
+    },
   });
 
   const [locations, setLocations] = useState<Location[]>([]);
@@ -262,6 +274,10 @@ export default function ReservationSystem() {
       name: formData.personalData.fullName,
       email: formData.personalData.email,
       phone: formData.personalData.phone,
+      iranyitoszam: formData.personalData.iranyitoszam || null,
+      varos: formData.personalData.varos || null,
+      utca: formData.personalData.utca || null,
+      birthday: formData.personalData.birthday || null,
       date: formData.date,
       time: formData.time,
       location: formData.location.name,
@@ -287,7 +303,15 @@ export default function ReservationSystem() {
         time: '',
         therapist: null,
         service: null,
-        personalData: { fullName: '', email: '', phone: '' }
+        personalData: {
+          fullName: '',
+          email: '',
+          phone: '',
+          iranyitoszam: '',
+          varos: '',
+          utca: '',
+          birthday: '',
+        },
       });
       setCurrentStep(1);
     } else {
@@ -729,6 +753,86 @@ export default function ReservationSystem() {
                       }))}
                     />
                   </div>
+                </div>
+                
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Irányítószám
+                    </label>
+                    <input
+                      type="text"
+                      maxLength={4}
+                      pattern="[0-9]{4}"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      placeholder="1234"
+                      value={formData.personalData.iranyitoszam}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/\D/g, '');
+                        setFormData(prev => ({
+                          ...prev,
+                          personalData: { ...prev.personalData, iranyitoszam: value }
+                        }));
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Város
+                    </label>
+                    <input
+                      type="text"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      placeholder="Budapest"
+                      value={formData.personalData.varos}
+                      onChange={(e) => setFormData(prev => ({
+                        ...prev,
+                        personalData: { ...prev.personalData, varos: e.target.value }
+                      }))}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Utca
+                    </label>
+                    <input
+                      type="text"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      placeholder="Példa utca 12."
+                      value={formData.personalData.utca}
+                      onChange={(e) => setFormData(prev => ({
+                        ...prev,
+                        personalData: { ...prev.personalData, utca: e.target.value }
+                      }))}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Születési dátum
+                  </label>
+                  <input
+                    type="text"
+                    maxLength={10}
+                    pattern="[0-9]{4}-[0-9]{2}-[0-9]{2}"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    placeholder="....-..-.. "
+                    value={formData.personalData.birthday}
+                    onChange={(e) => {
+                      let value = e.target.value.replace(/\D/g, '');
+                      if (value.length >= 4) {
+                        value = value.substring(0, 4) + '-' + value.substring(4);
+                      }
+                      if (value.length >= 7) {
+                        value = value.substring(0, 7) + '-' + value.substring(7, 9);
+                      }
+                      setFormData(prev => ({
+                        ...prev,
+                        personalData: { ...prev.personalData, birthday: value }
+                      }));
+                    }}
+                  />
                 </div>
               </div>
             </div>
