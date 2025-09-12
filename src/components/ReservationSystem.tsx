@@ -15,7 +15,7 @@ interface Personnel {
   name: string;
   role: string;
   description: string;
-  rank: number;
+  rank_name: string;
   location_id: string;
   service_ids: string[];
 }
@@ -182,8 +182,8 @@ export default function ReservationSystem() {
       // Must be assigned to selected location
       if (p.location_id !== formData.location?.id) return false;
       
-      // If user requires expert, only show high-rank therapists (rank 10)
-      if (requiresExpert() && p.rank < 10) return false;
+      // If user requires expert, only show highest level therapists
+      if (requiresExpert() && p.rank_name !== "Rehabilitációs nyirok terapeuta") return false;
       
       return true;
     });
@@ -635,9 +635,11 @@ export default function ReservationSystem() {
                         <div className="flex-1">
                           <div className="flex items-center space-x-2">
                             <h3 className="font-semibold text-gray-800">{therapist.name}</h3>
-                            <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">
-                              {therapist.rank}. szintű szakértő
-                            </span>
+                            {therapist.rank_name && (
+                              <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">
+                                {therapist.rank_name}
+                              </span>
+                            )}
                           </div>
                           <p className="text-gray-600 text-sm">{therapist.role}</p>
                           {therapist.description && (
