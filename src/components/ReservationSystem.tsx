@@ -290,6 +290,8 @@ export default function ReservationSystem() {
     setLoading(true);
     
     try {
+      console.log('Creating payment session for:', formData);
+      
       // First create Stripe payment session (without creating reservation yet)
       const { data: paymentData, error: paymentError } = await supabase.functions.invoke('create-payment', {
         body: {
@@ -297,33 +299,58 @@ export default function ReservationSystem() {
         }
       });
 
-      if (paymentError) throw paymentError;
+      console.log('Payment response:', { paymentData, paymentError });
+
+      if (paymentError) {
+        console.error('Payment function error:', paymentError);
+        throw new Error(paymentError.message || 'Payment function failed');
+      }
+
+      if (!paymentData?.url || !paymentData?.sessionId) {
+        throw new Error('Invalid payment response: missing URL or session ID');
+      }
 
       setPaymentSessionId(paymentData.sessionId);
       setFormData(prev => ({ ...prev, paymentStatus: 'processing' }));
 
-      // Open Stripe checkout in new window
-      const paymentWindow = window.open(paymentData.url, 'stripe-payment', 'width=800,height=600');
-      
-      // Monitor the payment window
-      const checkClosed = setInterval(() => {
-        if (paymentWindow?.closed) {
-          clearInterval(checkClosed);
-          handlePaymentReturn();
+      // For embedded context, try popup first, fallback to redirect
+      try {
+        const paymentWindow = window.open(paymentData.url, '_blank', 'width=800,height=600,scrollbars=yes,resizable=yes');
+        
+        if (paymentWindow) {
+          // Monitor the payment window
+          const checkClosed = setInterval(() => {
+            if (paymentWindow?.closed) {
+              clearInterval(checkClosed);
+              setTimeout(() => handlePaymentReturn(), 1000);
+            }
+          }, 1000);
+        } else {
+          // Popup blocked, use redirect method
+          console.log('Popup blocked, redirecting to payment...');
+          window.location.href = paymentData.url;
         }
-      }, 1000);
+      } catch (popupError) {
+        console.log('Popup failed, redirecting to payment...', popupError);
+        window.location.href = paymentData.url;
+      }
 
     } catch (error) {
       console.error('Payment error:', error);
-      alert('Hiba történt a fizetés során. Kérjük próbálja újra.');
+      alert(`Hiba történt a fizetés során. Kérjük próbálja újra. (${error.message || 'Ismeretlen hiba'})`);
       setLoading(false);
     }
   };
 
   const handlePaymentReturn = async () => {
-    if (!paymentSessionId) return;
+    if (!paymentSessionId) {
+      console.error('No payment session ID available');
+      return;
+    }
 
     try {
+      console.log('Verifying payment with session ID:', paymentSessionId);
+      
       // Verify payment and create reservation if payment successful
       const { data: verifyData, error: verifyError } = await supabase.functions.invoke('verify-payment', {
         body: {
@@ -332,19 +359,26 @@ export default function ReservationSystem() {
         }
       });
 
-      if (verifyError) throw verifyError;
+      console.log('Payment verification response:', { verifyData, verifyError });
 
-      if (verifyData.success) {
+      if (verifyError) {
+        console.error('Payment verification error:', verifyError);
+        throw new Error(verifyError.message || 'Payment verification failed');
+      }
+
+      if (verifyData?.success && verifyData?.paymentStatus === 'paid') {
         setReservationId(verifyData.reservationId);
         setFormData(prev => ({ ...prev, paymentStatus: 'paid' }));
         setCurrentStep(9); // Move to summary step
+        alert('Fizetés sikeres! Foglalása rögzítésre került.');
       } else {
+        console.error('Payment not successful:', verifyData);
         alert('A fizetés nem sikerült. Kérjük próbálja újra.');
         setFormData(prev => ({ ...prev, paymentStatus: 'pending' }));
       }
     } catch (error) {
       console.error('Payment verification error:', error);
-      alert('Nem sikerült ellenőrizni a fizetést. Kérjük vegye fel velünk a kapcsolatot.');
+      alert(`Nem sikerült ellenőrizni a fizetést. Kérjük vegye fel velünk a kapcsolatot. (${error.message || 'Ismeretlen hiba'})`);
     } finally {
       setLoading(false);
     }

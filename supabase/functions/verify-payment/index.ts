@@ -19,10 +19,11 @@ serve(async (req) => {
     const { sessionId, reservationData } = await req.json();
     
     if (!sessionId || !reservationData) {
+      console.error("verify-payment: Missing required data:", { sessionId: !!sessionId, reservationData: !!reservationData });
       throw new Error("Session ID and reservation data are required");
     }
 
-    console.log("verify-payment: Verifying session:", sessionId, "for reservation:", reservationId);
+    console.log("verify-payment: Verifying session:", sessionId, "for reservation data");
 
     // Initialize Stripe
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
@@ -40,6 +41,8 @@ serve(async (req) => {
     console.log("verify-payment: Session status:", session.payment_status);
 
     if (session.payment_status === 'paid') {
+      console.log("verify-payment: Payment confirmed, creating reservation...");
+      
       // Create the reservation now that payment is confirmed
       const reservationPayload = {
         name: reservationData.personalData.fullName,
@@ -81,6 +84,8 @@ serve(async (req) => {
         status: 200,
       });
     } else {
+      console.log("verify-payment: Payment not completed, status:", session.payment_status);
+      
       return new Response(JSON.stringify({ 
         success: false,
         paymentStatus: session.payment_status,
