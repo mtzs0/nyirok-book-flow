@@ -52,6 +52,7 @@ interface FormData {
     utca: string;
     birthday: string;
   };
+  paymentStatus: 'pending' | 'paid' | 'processing';
 }
 
 const STATEMENTS = [
@@ -77,7 +78,8 @@ const STEPS = [
   { id: 5, title: "Terapeuta", icon: User },
   { id: 6, title: "Szolgáltatás", icon: Stethoscope },
   { id: 7, title: "Adatok", icon: CreditCard },
-  { id: 8, title: "Összegzés", icon: CheckCircle }
+  { id: 8, title: "Foglalás", icon: CreditCard },
+  { id: 9, title: "Összegzés", icon: CheckCircle }
 ];
 
 export default function ReservationSystem() {
@@ -98,6 +100,7 @@ export default function ReservationSystem() {
       utca: '',
       birthday: '',
     },
+     paymentStatus: 'pending',
   });
 
   const [locations, setLocations] = useState<Location[]>([]);
@@ -106,6 +109,8 @@ export default function ReservationSystem() {
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [availableTimeSlots, setAvailableTimeSlots] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
+  const [paymentSessionId, setPaymentSessionId] = useState<string | null>(null);
+  const [reservationId, setReservationId] = useState<string | null>(null);
   const [calendarDate, setCalendarDate] = useState(new Date());
   const isMobile = useIsMobile();
 
@@ -129,6 +134,18 @@ export default function ReservationSystem() {
       calculateAvailableTimeSlots();
     }
   }, [formData.location, formData.date, personnel, reservations]);
+
+  // Handle payment success from URL parameters
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const paymentStatus = urlParams.get('payment');
+    const sessionId = urlParams.get('session_id');
+    
+    if (paymentStatus === 'success' && sessionId) {
+      setPaymentSessionId(sessionId);
+      handlePaymentReturn();
+    }
+  }, []);
 
   const loadLocations = async () => {
     const { data, error } = await supabase
@@ -261,7 +278,105 @@ export default function ReservationSystem() {
       case 7: return formData.personalData.fullName.trim() !== '' && 
                      formData.personalData.email.trim() !== '' && 
                      formData.personalData.phone.trim() !== '';
+      case 8: return true; // Payment step - button handles the logic
       default: return false;
+    }
+  };
+
+  // Payment handling functions
+  const handlePayment = async () => {
+    if (!formData.therapist || !formData.service || !formData.location) return;
+    
+    setLoading(true);
+    
+    try {
+      // First create the reservation with pending status
+      const reservationData = {
+        name: formData.personalData.fullName,
+        email: formData.personalData.email,
+        phone: formData.personalData.phone,
+        iranyitoszam: formData.personalData.iranyitoszam || null,
+        varos: formData.personalData.varos || null,
+        utca: formData.personalData.utca || null,
+        birthday: formData.personalData.birthday || null,
+        date: formData.date,
+        time: formData.time,
+        location: formData.location.name,
+        therapist: formData.therapist.name,
+        therapist_link: formData.therapist.id,
+        service: formData.service.name,
+        notes: `Statements: ${formData.statements.join(', ')}`,
+        payment_status: 'pending'
+      };
+
+      const { data: reservationResult, error: reservationError } = await supabase
+        .from('nyirok_reservations')
+        .insert([reservationData])
+        .select();
+
+      if (reservationError) throw reservationError;
+
+      const newReservationId = reservationResult[0].id;
+      setReservationId(newReservationId);
+
+      // Create Stripe payment session
+      const { data: paymentData, error: paymentError } = await supabase.functions.invoke('create-payment', {
+        body: {
+          reservationData: {
+            ...formData,
+            reservationId: newReservationId
+          }
+        }
+      });
+
+      if (paymentError) throw paymentError;
+
+      setPaymentSessionId(paymentData.sessionId);
+      setFormData(prev => ({ ...prev, paymentStatus: 'processing' }));
+
+      // Open Stripe checkout in new window
+      const paymentWindow = window.open(paymentData.url, 'stripe-payment', 'width=800,height=600');
+      
+      // Monitor the payment window
+      const checkClosed = setInterval(() => {
+        if (paymentWindow?.closed) {
+          clearInterval(checkClosed);
+          handlePaymentReturn();
+        }
+      }, 1000);
+
+    } catch (error) {
+      console.error('Payment error:', error);
+      alert('Hiba történt a fizetés során. Kérjük próbálja újra.');
+      setLoading(false);
+    }
+  };
+
+  const handlePaymentReturn = async () => {
+    if (!paymentSessionId || !reservationId) return;
+
+    try {
+      const { data: verifyData, error: verifyError } = await supabase.functions.invoke('verify-payment', {
+        body: {
+          sessionId: paymentSessionId,
+          reservationId: reservationId
+        }
+      });
+
+      if (verifyError) throw verifyError;
+
+      if (verifyData.success) {
+        setFormData(prev => ({ ...prev, paymentStatus: 'paid' }));
+        setCurrentStep(9); // Move to summary step
+      } else {
+        alert('A fizetés nem sikerült. Kérjük próbálja újra.');
+        setFormData(prev => ({ ...prev, paymentStatus: 'pending' }));
+      }
+    } catch (error) {
+      console.error('Payment verification error:', error);
+      alert('Nem sikerült ellenőrizni a fizetést. Kérjük vegye fel velünk a kapcsolatot.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -312,6 +427,7 @@ export default function ReservationSystem() {
           utca: '',
           birthday: '',
         },
+        paymentStatus: 'pending',
       });
       setCurrentStep(1);
     } else {
@@ -451,7 +567,7 @@ export default function ReservationSystem() {
   };
 
   const renderProgressBar = () => {
-    const progress = (currentStep / 8) * 100;
+    const progress = (currentStep / 9) * 100;
     
     return (
       <div className="mb-8">
@@ -845,6 +961,32 @@ export default function ReservationSystem() {
         return (
           <div className="space-y-6 h-full flex flex-col">
             <div className="flex-shrink-0">
+              <h2 className="text-2xl font-bold text-gray-800 mb-2">Foglalás</h2>
+              <p className="text-gray-600">Fizetés után véglegesítjük a foglalását</p>
+            </div>
+            <div className="flex-1 min-h-0 flex items-center justify-center">
+              <div className="text-center space-y-4">
+                {formData.paymentStatus === 'processing' ? (
+                  <>
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+                    <p className="text-lg">Fizetés feldolgozása...</p>
+                  </>
+                ) : (
+                  <>
+                    <CreditCard size={48} className="mx-auto text-blue-600" />
+                    <p className="text-lg">Kérjük kattintson a "Fizetés" gombra a folytatáshoz</p>
+                    <p className="text-gray-600">A fizetés egy új ablakban nyílik meg</p>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+
+      case 9:
+        return (
+          <div className="space-y-6 h-full flex flex-col">
+            <div className="flex-shrink-0">
               <h2 className="text-2xl font-bold text-gray-800 mb-2">Összegzés</h2>
               <p className="text-gray-600">Ellenőrizd a foglalás adatait</p>
             </div>
@@ -910,9 +1052,18 @@ export default function ReservationSystem() {
             
             {currentStep === 8 ? (
               <button
-                onClick={handleSubmit}
+                onClick={handlePayment}
                 disabled={loading}
-                className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2"
+                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
+              >
+                {loading ? 'Fizetés...' : 'Fizetés'}
+                <CreditCard size={20} />
+              </button>
+            ) : currentStep === 9 ? (
+              <button
+                onClick={handleSubmit}
+                disabled={loading || formData.paymentStatus !== 'paid'}
+                className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2 disabled:opacity-50"
               >
                 {loading ? 'Foglalás...' : 'Foglalás véglegesítése'}
                 <CheckCircle size={20} />
