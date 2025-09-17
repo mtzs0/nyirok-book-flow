@@ -354,6 +354,7 @@ export type Database = {
           location: string
           name: string
           notes: string | null
+          payment_status: string
           phone: string
           service: string
           therapist: string
@@ -373,6 +374,7 @@ export type Database = {
           location: string
           name: string
           notes?: string | null
+          payment_status?: string
           phone: string
           service: string
           therapist: string
@@ -392,6 +394,7 @@ export type Database = {
           location?: string
           name?: string
           notes?: string | null
+          payment_status?: string
           phone?: string
           service?: string
           therapist?: string
