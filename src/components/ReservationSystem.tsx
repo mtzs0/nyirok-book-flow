@@ -290,42 +290,10 @@ export default function ReservationSystem() {
     setLoading(true);
     
     try {
-      // First create the reservation with pending status
-      const reservationData = {
-        name: formData.personalData.fullName,
-        email: formData.personalData.email,
-        phone: formData.personalData.phone,
-        iranyitoszam: formData.personalData.iranyitoszam || null,
-        varos: formData.personalData.varos || null,
-        utca: formData.personalData.utca || null,
-        birthday: formData.personalData.birthday || null,
-        date: formData.date,
-        time: formData.time,
-        location: formData.location.name,
-        therapist: formData.therapist.name,
-        therapist_link: formData.therapist.id,
-        service: formData.service.name,
-        notes: `Statements: ${formData.statements.join(', ')}`,
-        payment_status: 'pending'
-      };
-
-      const { data: reservationResult, error: reservationError } = await supabase
-        .from('nyirok_reservations')
-        .insert([reservationData])
-        .select();
-
-      if (reservationError) throw reservationError;
-
-      const newReservationId = reservationResult[0].id;
-      setReservationId(newReservationId);
-
-      // Create Stripe payment session
+      // First create Stripe payment session (without creating reservation yet)
       const { data: paymentData, error: paymentError } = await supabase.functions.invoke('create-payment', {
         body: {
-          reservationData: {
-            ...formData,
-            reservationId: newReservationId
-          }
+          reservationData: formData
         }
       });
 
@@ -353,19 +321,21 @@ export default function ReservationSystem() {
   };
 
   const handlePaymentReturn = async () => {
-    if (!paymentSessionId || !reservationId) return;
+    if (!paymentSessionId) return;
 
     try {
+      // Verify payment and create reservation if payment successful
       const { data: verifyData, error: verifyError } = await supabase.functions.invoke('verify-payment', {
         body: {
           sessionId: paymentSessionId,
-          reservationId: reservationId
+          reservationData: formData
         }
       });
 
       if (verifyError) throw verifyError;
 
       if (verifyData.success) {
+        setReservationId(verifyData.reservationId);
         setFormData(prev => ({ ...prev, paymentStatus: 'paid' }));
         setCurrentStep(9); // Move to summary step
       } else {

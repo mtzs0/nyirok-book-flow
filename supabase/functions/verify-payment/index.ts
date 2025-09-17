@@ -16,10 +16,10 @@ serve(async (req) => {
   try {
     console.log("verify-payment: Function started");
 
-    const { sessionId, reservationId } = await req.json();
+    const { sessionId, reservationData } = await req.json();
     
-    if (!sessionId || !reservationId) {
-      throw new Error("Session ID and reservation ID are required");
+    if (!sessionId || !reservationData) {
+      throw new Error("Session ID and reservation data are required");
     }
 
     console.log("verify-payment: Verifying session:", sessionId, "for reservation:", reservationId);
@@ -40,23 +40,41 @@ serve(async (req) => {
     console.log("verify-payment: Session status:", session.payment_status);
 
     if (session.payment_status === 'paid') {
-      // Update the reservation status to 'paid'
+      // Create the reservation now that payment is confirmed
+      const reservationPayload = {
+        name: reservationData.personalData.fullName,
+        email: reservationData.personalData.email,
+        phone: reservationData.personalData.phone,
+        iranyitoszam: reservationData.personalData.iranyitoszam || null,
+        varos: reservationData.personalData.varos || null,
+        utca: reservationData.personalData.utca || null,
+        birthday: reservationData.personalData.birthday || null,
+        therapist_link: reservationData.therapist.id,
+        date: reservationData.date,
+        time: reservationData.time,
+        location: reservationData.location.name,
+        therapist: reservationData.therapist.name,
+        service: reservationData.service.name,
+        notes: `Statements: ${reservationData.statements.join(', ')}`,
+        payment_status: 'paid'
+      };
+
       const { data, error } = await supabase
         .from('nyirok_reservations')
-        .update({ payment_status: 'paid' })
-        .eq('id', reservationId)
+        .insert([reservationPayload])
         .select();
 
       if (error) {
-        console.error("verify-payment: Error updating reservation:", error);
-        throw new Error(`Failed to update reservation: ${error.message}`);
+        console.error("verify-payment: Error creating reservation:", error);
+        throw new Error(`Failed to create reservation: ${error.message}`);
       }
 
-      console.log("verify-payment: Reservation updated successfully:", data);
+      console.log("verify-payment: Reservation created successfully:", data);
 
       return new Response(JSON.stringify({ 
         success: true,
         paymentStatus: 'paid',
+        reservationId: data[0].id,
         reservation: data[0]
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },

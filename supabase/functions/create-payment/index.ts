@@ -40,7 +40,7 @@ serve(async (req) => {
               name: `Nyirok Therapy - ${reservationData.service.name}`,
               description: reservationData.service.description || 'Lymphatic therapy reservation',
             },
-            unit_amount: reservationData.service.price, // Price should be in minor units (cents)
+            unit_amount: Math.max(reservationData.service.price, 175), // Ensure minimum HUF amount
           },
           quantity: 1,
         },
