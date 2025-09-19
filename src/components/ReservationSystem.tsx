@@ -135,16 +135,27 @@ export default function ReservationSystem() {
     }
   }, [formData.location, formData.date, personnel, reservations]);
 
-  // Handle payment success from URL parameters
+  // Handle cross-window communication for payment
   useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const paymentStatus = urlParams.get('payment');
-    const sessionId = urlParams.get('session_id');
-    
-    if (paymentStatus === 'success' && sessionId) {
-      setPaymentSessionId(sessionId);
-      handlePaymentReturn();
-    }
+    const handleMessage = (event: MessageEvent) => {
+      // Only accept messages from our domain for security
+      if (!event.origin.includes('mtzs0.github.io') && !event.origin.includes('localhost')) {
+        return;
+      }
+      
+      if (event.data.type === 'PAYMENT_SUCCESS' && event.data.sessionId) {
+        console.log('Payment success received from popup:', event.data.sessionId);
+        setPaymentSessionId(event.data.sessionId);
+        handlePaymentReturn(event.data.sessionId);
+      } else if (event.data.type === 'PAYMENT_CANCELLED') {
+        console.log('Payment cancelled received from popup');
+        setFormData(prev => ({ ...prev, paymentStatus: 'pending' }));
+        alert('Fizetés megszakítva. Próbálja újra vagy válasszon másik fizetési módot.');
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
   }, []);
 
   const loadLocations = async () => {
@@ -289,7 +300,7 @@ export default function ReservationSystem() {
       setLoading(true);
       console.log('Starting payment process with data:', formData);
       
-      // Store reservation data in localStorage for retrieval after redirect
+      // Store reservation data in localStorage for retrieval after payment
       localStorage.setItem('reservation_data', JSON.stringify(formData));
       
       const { data, error } = await supabase.functions.invoke('create-payment', {
@@ -313,36 +324,46 @@ export default function ReservationSystem() {
         setPaymentSessionId(data.sessionId);
       }
 
-      // Use redirect-based flow for better embedded compatibility
-      window.location.href = data.url;
+      // Set processing status and open payment in new tab
+      setFormData(prev => ({ ...prev, paymentStatus: 'processing' }));
+      
+      // Open Stripe Checkout in new tab for embedded compatibility
+      const paymentWindow = window.open(data.url, '_blank', 'width=600,height=700,scrollbars=yes,resizable=yes');
+      
+      if (!paymentWindow) {
+        // Popup blocked - show fallback
+        alert('A felugró ablakokat le vannak tiltva. Kérjük engedélyezze a felugró ablakokat és próbálja újra, vagy másolja be ezt a linket egy új ablakba: ' + data.url);
+        setFormData(prev => ({ ...prev, paymentStatus: 'pending' }));
+      }
 
     } catch (error) {
       console.error('Payment error:', error);
       alert(`Hiba történt a fizetés során. Kérjük próbálja újra. (${error.message || 'Ismeretlen hiba'})`);
+      setFormData(prev => ({ ...prev, paymentStatus: 'pending' }));
     } finally {
       setLoading(false);
     }
   };
 
-  const handlePaymentReturn = async () => {
+  const handlePaymentReturn = async (sessionId?: string) => {
     try {
       console.log('Processing payment return...');
       
-      const sessionId = localStorage.getItem('stripe_session_id') || paymentSessionId;
+      const finalSessionId = sessionId || localStorage.getItem('stripe_session_id') || paymentSessionId;
       const savedReservationData = localStorage.getItem('reservation_data');
       
-      if (!sessionId) {
+      if (!finalSessionId) {
         console.error('No session ID found');
         throw new Error('Nincs fizetési azonosító');
       }
 
       // Use saved reservation data if available, otherwise use current formData
       const reservationData = savedReservationData ? JSON.parse(savedReservationData) : formData;
-      console.log('Verifying payment with session ID:', sessionId);
+      console.log('Verifying payment with session ID:', finalSessionId);
       
       const { data, error } = await supabase.functions.invoke('verify-payment', {
         body: { 
-          sessionId,
+          sessionId: finalSessionId,
           reservationData 
         }
       });

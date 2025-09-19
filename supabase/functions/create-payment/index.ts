@@ -68,8 +68,8 @@ serve(async (req) => {
         },
       ],
       mode: "payment",
-      success_url: `${req.headers.get("origin")}?payment=success&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${req.headers.get("origin")}?payment=cancelled`,
+      success_url: `https://mtzs0.github.io/nyirok-book-flow/payment-success.html?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `https://mtzs0.github.io/nyirok-book-flow/payment-cancelled.html`,
       metadata: {
         reservation_date: reservationData.date,
         reservation_time: reservationData.time,

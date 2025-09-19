@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fizetés megszakítva</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .container {
+            background: white;
+            border-radius: 12px;
+            padding: 40px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            max-width: 400px;
+        }
+        .cancel-icon {
+            width: 60px;
+            height: 60px;
+            margin: 0 auto 20px;
+            background: #EF4444;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .x-mark {
+            color: white;
+            font-size: 30px;
+        }
+        h1 {
+            color: #1F2937;
+            margin: 0 0 10px;
+        }
+        p {
+            color: #6B7280;
+            margin: 0 0 20px;
+        }
+        .spinner {
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #EF4444;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="cancel-icon">
+            <span class="x-mark">✕</span>
+        </div>
+        <h1>Fizetés megszakítva</h1>
+        <p>A fizetési folyamat megszakításra került. Ez az ablak automatikusan bezáródik.</p>
+        <div class="spinner"></div>
+    </div>
+
+    <script>
+        // Send cancelled message to parent window
+        if (window.opener) {
+            window.opener.postMessage({
+                type: 'PAYMENT_CANCELLED'
+            }, '*');
+            
+            // Close this window after a short delay
+            setTimeout(() => {
+                window.close();
+            }, 2000);
+        } else {
+            // Fallback if no opener
+            setTimeout(() => {
+                window.close();
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
