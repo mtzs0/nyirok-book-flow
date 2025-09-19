@@ -30,7 +30,7 @@ serve(async (req) => {
     });
 
     // Fixed booking fee - configurable for testing purposes
-    const BOOKING_FEE_HUF = 5000;
+    const BOOKING_FEE_HUF = 300;
     
     // HUF is a two-decimal currency - amounts must be in fillér (minor units)
     // 1 HUF = 100 fillér, so multiply by 100 for Stripe API
