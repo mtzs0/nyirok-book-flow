@@ -32,16 +32,27 @@ serve(async (req) => {
 
     // Ensure price is a valid number and meets Stripe minimum
     const servicePrice = parseInt(reservationData.service.price) || 0;
-    const finalPrice = Math.max(servicePrice, 175);
+    
+    // HUF is a two-decimal currency - amounts must be in fillér (minor units)
+    // 1 HUF = 100 fillér, so multiply by 100 for Stripe API
+    const priceInMinorUnits = servicePrice * 100;
+    
+    // Stripe minimum for HUF is 175.00 Ft = 17500 in minor units
+    const minimumHufAmount = 17500;
+    const finalPrice = Math.max(priceInMinorUnits, minimumHufAmount);
     
     console.log("create-payment: Processed price:", { 
       originalPrice: reservationData.service.price, 
       servicePrice, 
-      finalPrice 
+      priceInMinorUnits,
+      finalPrice,
+      minimumHufAmount
     });
 
-    // Create a checkout session with dynamic pricing based on the service
-    const session = await stripe.checkout.sessions.create({
+    // HUF is a two-decimal currency for Stripe - amounts must be in fillér (minor units)
+    console.log("create-payment: About to create session with unit_amount:", finalPrice);
+
+    const sessionData = {
       customer_email: reservationData.personalData.email,
       line_items: [
         {
@@ -66,7 +77,12 @@ serve(async (req) => {
         service: reservationData.service.name,
         client_email: reservationData.personalData.email,
       },
-    });
+    };
+
+    console.log("create-payment: Session data being sent to Stripe:", JSON.stringify(sessionData, null, 2));
+
+    // Create a checkout session with dynamic pricing based on the service
+    const session = await stripe.checkout.sessions.create(sessionData);
 
     console.log("create-payment: Checkout session created:", session.id);
 
