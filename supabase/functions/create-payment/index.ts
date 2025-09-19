@@ -23,10 +23,21 @@ serve(async (req) => {
     }
 
     console.log("create-payment: Received reservation data:", reservationData);
+    console.log("create-payment: Service price:", reservationData.service.price, "Type:", typeof reservationData.service.price);
 
     // Initialize Stripe
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
       apiVersion: "2025-08-27.basil",
+    });
+
+    // Ensure price is a valid number and meets Stripe minimum
+    const servicePrice = parseInt(reservationData.service.price) || 0;
+    const finalPrice = Math.max(servicePrice, 175);
+    
+    console.log("create-payment: Processed price:", { 
+      originalPrice: reservationData.service.price, 
+      servicePrice, 
+      finalPrice 
     });
 
     // Create a checkout session with dynamic pricing based on the service
@@ -40,7 +51,7 @@ serve(async (req) => {
               name: `Nyirok Therapy - ${reservationData.service.name}`,
               description: reservationData.service.description || 'Lymphatic therapy reservation',
             },
-            unit_amount: Math.max(reservationData.service.price, 175), // Ensure minimum HUF amount
+            unit_amount: finalPrice,
           },
           quantity: 1,
         },

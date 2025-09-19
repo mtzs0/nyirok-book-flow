@@ -285,102 +285,99 @@ export default function ReservationSystem() {
 
   // Payment handling functions
   const handlePayment = async () => {
-    if (!formData.therapist || !formData.service || !formData.location) return;
-    
-    setLoading(true);
-    
     try {
-      console.log('Creating payment session for:', formData);
+      setLoading(true);
+      console.log('Starting payment process with data:', formData);
       
-      // First create Stripe payment session (without creating reservation yet)
-      const { data: paymentData, error: paymentError } = await supabase.functions.invoke('create-payment', {
-        body: {
-          reservationData: formData
-        }
+      // Store reservation data in localStorage for retrieval after redirect
+      localStorage.setItem('reservation_data', JSON.stringify(formData));
+      
+      const { data, error } = await supabase.functions.invoke('create-payment', {
+        body: { reservationData: formData }
       });
 
-      console.log('Payment response:', { paymentData, paymentError });
-
-      if (paymentError) {
-        console.error('Payment function error:', paymentError);
-        throw new Error(paymentError.message || 'Payment function failed');
+      if (error) {
+        console.error('Payment creation error:', error);
+        throw new Error(error.message || 'Payment function failed');
       }
 
-      if (!paymentData?.url || !paymentData?.sessionId) {
-        throw new Error('Invalid payment response: missing URL or session ID');
+      if (!data?.url) {
+        throw new Error('No payment URL received');
       }
 
-      setPaymentSessionId(paymentData.sessionId);
-      setFormData(prev => ({ ...prev, paymentStatus: 'processing' }));
-
-      // For embedded context, try popup first, fallback to redirect
-      try {
-        const paymentWindow = window.open(paymentData.url, '_blank', 'width=800,height=600,scrollbars=yes,resizable=yes');
-        
-        if (paymentWindow) {
-          // Monitor the payment window
-          const checkClosed = setInterval(() => {
-            if (paymentWindow?.closed) {
-              clearInterval(checkClosed);
-              setTimeout(() => handlePaymentReturn(), 1000);
-            }
-          }, 1000);
-        } else {
-          // Popup blocked, use redirect method
-          console.log('Popup blocked, redirecting to payment...');
-          window.location.href = paymentData.url;
-        }
-      } catch (popupError) {
-        console.log('Popup failed, redirecting to payment...', popupError);
-        window.location.href = paymentData.url;
+      console.log('Payment URL received:', data.url);
+      
+      // Store the session ID for verification
+      if (data.sessionId) {
+        localStorage.setItem('stripe_session_id', data.sessionId);
+        setPaymentSessionId(data.sessionId);
       }
+
+      // Use redirect-based flow for better embedded compatibility
+      window.location.href = data.url;
 
     } catch (error) {
       console.error('Payment error:', error);
       alert(`Hiba történt a fizetés során. Kérjük próbálja újra. (${error.message || 'Ismeretlen hiba'})`);
+    } finally {
       setLoading(false);
     }
   };
 
   const handlePaymentReturn = async () => {
-    if (!paymentSessionId) {
-      console.error('No payment session ID available');
-      return;
-    }
-
     try {
-      console.log('Verifying payment with session ID:', paymentSessionId);
+      console.log('Processing payment return...');
       
-      // Verify payment and create reservation if payment successful
-      const { data: verifyData, error: verifyError } = await supabase.functions.invoke('verify-payment', {
-        body: {
-          sessionId: paymentSessionId,
-          reservationData: formData
+      const sessionId = localStorage.getItem('stripe_session_id') || paymentSessionId;
+      const savedReservationData = localStorage.getItem('reservation_data');
+      
+      if (!sessionId) {
+        console.error('No session ID found');
+        throw new Error('Nincs fizetési azonosító');
+      }
+
+      // Use saved reservation data if available, otherwise use current formData
+      const reservationData = savedReservationData ? JSON.parse(savedReservationData) : formData;
+      console.log('Verifying payment with session ID:', sessionId);
+      
+      const { data, error } = await supabase.functions.invoke('verify-payment', {
+        body: { 
+          sessionId,
+          reservationData 
         }
       });
 
-      console.log('Payment verification response:', { verifyData, verifyError });
-
-      if (verifyError) {
-        console.error('Payment verification error:', verifyError);
-        throw new Error(verifyError.message || 'Payment verification failed');
+      if (error) {
+        console.error('Payment verification error:', error);
+        throw new Error(error.message || 'Payment verification failed');
       }
 
-      if (verifyData?.success && verifyData?.paymentStatus === 'paid') {
-        setReservationId(verifyData.reservationId);
+      console.log('Payment verification response:', data);
+
+      if (data.success && data.paymentStatus === 'paid') {
+        console.log('Payment successful, reservation created:', data.reservation);
+        
+        // Update form data if we used saved data
+        if (savedReservationData) {
+          setFormData(reservationData);
+        }
+        
+        setReservationId(data.reservationId);
         setFormData(prev => ({ ...prev, paymentStatus: 'paid' }));
         setCurrentStep(9); // Move to summary step
+        
+        // Clean up localStorage
+        localStorage.removeItem('stripe_session_id');
+        localStorage.removeItem('reservation_data');
+        
         alert('Fizetés sikeres! Foglalása rögzítésre került.');
       } else {
-        console.error('Payment not successful:', verifyData);
-        alert('A fizetés nem sikerült. Kérjük próbálja újra.');
-        setFormData(prev => ({ ...prev, paymentStatus: 'pending' }));
+        throw new Error(data.message || 'Fizetés nem sikerült');
       }
     } catch (error) {
-      console.error('Payment verification error:', error);
-      alert(`Nem sikerült ellenőrizni a fizetést. Kérjük vegye fel velünk a kapcsolatot. (${error.message || 'Ismeretlen hiba'})`);
-    } finally {
-      setLoading(false);
+      console.error('Payment return error:', error);
+      alert(`Hiba történt a fizetés ellenőrzésekor. (${error.message || 'Ismeretlen hiba'})`);
+      setFormData(prev => ({ ...prev, paymentStatus: 'pending' }));
     }
   };
 
