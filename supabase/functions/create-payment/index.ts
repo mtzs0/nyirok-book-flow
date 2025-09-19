@@ -18,39 +18,31 @@ serve(async (req) => {
 
     const { reservationData } = await req.json();
     
-    if (!reservationData || !reservationData.service) {
-      throw new Error("Reservation data and service information required");
+    if (!reservationData) {
+      throw new Error("Reservation data required");
     }
 
     console.log("create-payment: Received reservation data:", reservationData);
-    console.log("create-payment: Service price:", reservationData.service.price, "Type:", typeof reservationData.service.price);
 
     // Initialize Stripe
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
       apiVersion: "2025-08-27.basil",
     });
 
-    // Ensure price is a valid number and meets Stripe minimum
-    const servicePrice = parseInt(reservationData.service.price) || 0;
+    // Fixed booking fee - configurable for testing purposes
+    const BOOKING_FEE_HUF = 5000;
     
     // HUF is a two-decimal currency - amounts must be in fillér (minor units)
     // 1 HUF = 100 fillér, so multiply by 100 for Stripe API
-    const priceInMinorUnits = servicePrice * 100;
+    const priceInMinorUnits = BOOKING_FEE_HUF * 100;
     
-    // Stripe minimum for HUF is 175.00 Ft = 17500 in minor units
-    const minimumHufAmount = 17500;
-    const finalPrice = Math.max(priceInMinorUnits, minimumHufAmount);
-    
-    console.log("create-payment: Processed price:", { 
-      originalPrice: reservationData.service.price, 
-      servicePrice, 
-      priceInMinorUnits,
-      finalPrice,
-      minimumHufAmount
+    console.log("create-payment: Using fixed booking fee:", { 
+      bookingFeeHuf: BOOKING_FEE_HUF,
+      priceInMinorUnits
     });
 
     // HUF is a two-decimal currency for Stripe - amounts must be in fillér (minor units)
-    console.log("create-payment: About to create session with unit_amount:", finalPrice);
+    console.log("create-payment: About to create session with unit_amount:", priceInMinorUnits);
 
     const sessionData = {
       customer_email: reservationData.personalData.email,
@@ -59,10 +51,10 @@ serve(async (req) => {
           price_data: {
             currency: 'huf',
             product_data: {
-              name: `Nyirok Therapy - ${reservationData.service.name}`,
-              description: reservationData.service.description || 'Lymphatic therapy reservation',
+              name: 'Nyirok Klinika kezelés foglalási díj',
+              description: 'Nyirokterápia foglalási díj',
             },
-            unit_amount: finalPrice,
+            unit_amount: priceInMinorUnits,
           },
           quantity: 1,
         },
@@ -81,7 +73,7 @@ serve(async (req) => {
 
     console.log("create-payment: Session data being sent to Stripe:", JSON.stringify(sessionData, null, 2));
 
-    // Create a checkout session with dynamic pricing based on the service
+    // Create a checkout session with fixed booking fee
     const session = await stripe.checkout.sessions.create(sessionData);
 
     console.log("create-payment: Checkout session created:", session.id);
