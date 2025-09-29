@@ -42,7 +42,7 @@ serve(async (req) => {
     console.error('Error in notify-webhook function:', error);
     return new Response(JSON.stringify({ 
       error: 'Webhook notification failed', 
-      details: error.message 
+      details: error instanceof Error ? error.message : 'Unknown error'
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
