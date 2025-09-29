@@ -1010,7 +1010,7 @@ export default function ReservationSystem() {
           <div className="space-y-6 h-full flex flex-col">
             <div className="flex-shrink-0">
               <h2 className="text-2xl font-bold text-gray-800 mb-2">Összegzés</h2>
-              <p className="text-gray-600">Ellenőrizd a foglalás adatait</p>
+              <p className="text-gray-600">Hamarosan emailben továbbítjuk önnek a foglalás részleteit.</p>
             </div>
             <div className="flex-1 min-h-0">
               <div className="bg-gray-50 rounded-xl p-6 space-y-4">
@@ -1082,14 +1082,7 @@ export default function ReservationSystem() {
                 <CreditCard size={20} />
               </button>
             ) : currentStep === 9 ? (
-              <button
-                onClick={handleSubmit}
-                disabled={loading || formData.paymentStatus !== 'paid'}
-                className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2 disabled:opacity-50"
-              >
-                {loading ? 'Foglalás...' : 'Foglalás véglegesítése'}
-                <CheckCircle size={20} />
-              </button>
+              null
             ) : (
               <button
                 onClick={handleNext}
