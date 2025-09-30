@@ -6,7 +6,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const WEBHOOK_URL = 'https://n.dakexpo.hu/webhook-test/9dd1522a-ee50-4397-85dc-c693bf4895d6';
+const WEBHOOK_URL = 'https://n.dakexpo.hu/webhook/9dd1522a-ee50-4397-85dc-c693bf4895d6';
 
 serve(async (req) => {
   // Handle CORS preflight requests
