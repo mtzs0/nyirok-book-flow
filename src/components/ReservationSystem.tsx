@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Calendar, Clock, MapPin, User, Stethoscope, CreditCard, CheckCircle, ChevronRight, ChevronLeft, Mail, Phone } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { toast } from '@/hooks/use-toast';
 
 interface Location {
   id: string;
@@ -150,7 +151,11 @@ export default function ReservationSystem() {
       } else if (event.data.type === 'PAYMENT_CANCELLED') {
         console.log('Payment cancelled received from popup');
         setFormData(prev => ({ ...prev, paymentStatus: 'pending' }));
-        alert('Fizetés megszakítva. Próbálja újra vagy válasszon másik fizetési módot.');
+        toast({
+          title: "Fizetés megszakítva",
+          description: "Próbálja újra vagy válasszon másik fizetési módot.",
+          variant: "destructive"
+        });
       }
     };
 
@@ -332,13 +337,21 @@ export default function ReservationSystem() {
       
       if (!paymentWindow) {
         // Popup blocked - show fallback
-        alert('A felugró ablakokat le vannak tiltva. Kérjük engedélyezze a felugró ablakokat és próbálja újra, vagy másolja be ezt a linket egy új ablakba: ' + data.url);
+        toast({
+          title: "Felugró ablak blokkolva",
+          description: "Kérjük engedélyezze a felugró ablakokat és próbálja újra.",
+          variant: "destructive"
+        });
         setFormData(prev => ({ ...prev, paymentStatus: 'pending' }));
       }
 
     } catch (error) {
       console.error('Payment error:', error);
-      alert(`Hiba történt a fizetés során. Kérjük próbálja újra. (${error.message || 'Ismeretlen hiba'})`);
+      toast({
+        title: "Fizetési hiba",
+        description: `Hiba történt a fizetés során. Kérjük próbálja újra.`,
+        variant: "destructive"
+      });
       setFormData(prev => ({ ...prev, paymentStatus: 'pending' }));
     } finally {
       setLoading(false);
@@ -390,14 +403,16 @@ export default function ReservationSystem() {
         // Clean up localStorage
         localStorage.removeItem('stripe_session_id');
         localStorage.removeItem('reservation_data');
-        
-        alert('Fizetés sikeres! Foglalása rögzítésre került.');
       } else {
         throw new Error(data.message || 'Fizetés nem sikerült');
       }
     } catch (error) {
       console.error('Payment return error:', error);
-      alert(`Hiba történt a fizetés ellenőrzésekor. (${error.message || 'Ismeretlen hiba'})`);
+      toast({
+        title: "Ellenőrzési hiba",
+        description: "Hiba történt a fizetés ellenőrzésekor. Kérjük próbálja újra.",
+        variant: "destructive"
+      });
       setFormData(prev => ({ ...prev, paymentStatus: 'pending' }));
     }
   };
@@ -431,7 +446,10 @@ export default function ReservationSystem() {
     setLoading(false);
 
     if (!error) {
-      alert('Foglalás sikeresen létrehozva!');
+      toast({
+        title: "Sikeres foglalás",
+        description: "Foglalása sikeresen létrehozva!",
+      });
       // Reset form
       setFormData({
         statements: [],
@@ -453,7 +471,11 @@ export default function ReservationSystem() {
       });
       setCurrentStep(1);
     } else {
-      alert('Hiba történt a foglalás során. Kérjük próbálja újra.');
+      toast({
+        title: "Foglalási hiba",
+        description: "Hiba történt a foglalás során. Kérjük próbálja újra.",
+        variant: "destructive"
+      });
     }
   };
 
