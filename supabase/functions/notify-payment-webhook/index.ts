@@ -24,21 +24,19 @@ serve(async (req) => {
 
     if (!response.ok) {
       console.error(`Webhook call failed with status: ${response.status}`);
-      throw new Error(`Webhook call failed with status: ${response.status}`);
+      // Don't throw - this is non-critical, just log the failure
+    } else {
+      console.log('notify-payment-webhook: Webhook call successful');
     }
-
-    console.log('notify-payment-webhook: Webhook call successful');
 
     return new Response(JSON.stringify({ success: true }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
     console.error('Error in notify-payment-webhook:', error);
-    return new Response(JSON.stringify({
-      error: 'Webhook notification failed',
-      details: error instanceof Error ? error.message : 'Unknown error'
-    }), {
-      status: 500,
+    // Return success anyway - webhook failures shouldn't block the flow
+    return new Response(JSON.stringify({ success: true, warning: 'Webhook delivery failed but was non-blocking' }), {
+      status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
