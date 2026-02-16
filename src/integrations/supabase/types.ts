@@ -14,6 +14,21 @@ export type Database = {
   }
   public: {
     Tables: {
+      activation: {
+        Row: {
+          created_at: string
+          id: number
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+        }
+        Update: {
+          created_at?: string
+          id?: number
+        }
+        Relationships: []
+      }
       items: {
         Row: {
           addons: string[] | null
@@ -627,10 +642,7 @@ export type Database = {
         }
         Returns: boolean
       }
-      is_staff_member: {
-        Args: { _user_id: string }
-        Returns: boolean
-      }
+      is_staff_member: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "therapist" | "staff"

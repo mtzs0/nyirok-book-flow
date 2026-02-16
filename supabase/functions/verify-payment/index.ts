@@ -74,7 +74,28 @@ serve(async (req) => {
 
       console.log("verify-payment: Reservation created successfully:", data);
 
-      return new Response(JSON.stringify({ 
+      // Fire-and-forget: notify payment webhook with customer + service data
+      try {
+        const webhookPayload = {
+          client_name: reservationData.personalData.fullName,
+          client_email: reservationData.personalData.email,
+          client_phone: reservationData.personalData.phone,
+          client_postcode: reservationData.personalData.iranyitoszam || null,
+          client_city: reservationData.personalData.varos || null,
+          client_street: reservationData.personalData.utca || null,
+          service_name: reservationData.service.name,
+          service_price: reservationData.service.price,
+        };
+        fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/notify-payment-webhook`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(webhookPayload),
+        }).catch(err => console.error("verify-payment: notify-payment-webhook fire-and-forget error:", err));
+      } catch (e) {
+        console.error("verify-payment: Failed to call notify-payment-webhook:", e);
+      }
+
+      return new Response(JSON.stringify({
         success: true,
         paymentStatus: 'paid',
         reservationId: data[0].id,
