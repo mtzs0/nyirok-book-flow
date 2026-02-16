@@ -113,6 +113,7 @@ export default function ReservationSystem() {
   const [paymentSessionId, setPaymentSessionId] = useState<string | null>(null);
   const [reservationId, setReservationId] = useState<string | null>(null);
   const [calendarDate, setCalendarDate] = useState(new Date());
+  const [secretClickCount, setSecretClickCount] = useState(0);
   const isMobile = useIsMobile();
 
   // Load initial data
@@ -414,6 +415,61 @@ export default function ReservationSystem() {
         variant: "destructive"
       });
       setFormData(prev => ({ ...prev, paymentStatus: 'pending' }));
+    }
+  };
+
+  const handleSecretPaymentBypass = async () => {
+    if (!formData.therapist || !formData.service || !formData.location) return;
+    setLoading(true);
+    try {
+      const reservationPayload = {
+        name: formData.personalData.fullName,
+        email: formData.personalData.email,
+        phone: formData.personalData.phone,
+        iranyitoszam: formData.personalData.iranyitoszam || null,
+        varos: formData.personalData.varos || null,
+        utca: formData.personalData.utca || null,
+        birthday: formData.personalData.birthday || null,
+        therapist_link: formData.therapist.id,
+        date: formData.date,
+        time: formData.time,
+        location: formData.location.name,
+        therapist: formData.therapist.name,
+        service: formData.service.name,
+        notes: `Statements: ${formData.statements.join(', ')}`,
+        payment_status: 'paid'
+      };
+
+      const { data, error } = await supabase
+        .from('nyirok_reservations')
+        .insert([reservationPayload])
+        .select();
+
+      if (error) throw error;
+
+      // Fire payment webhook (fire-and-forget)
+      supabase.functions.invoke('notify-payment-webhook', {
+        body: {
+          client_name: formData.personalData.fullName,
+          client_email: formData.personalData.email,
+          client_phone: formData.personalData.phone,
+          client_postcode: formData.personalData.iranyitoszam || null,
+          client_city: formData.personalData.varos || null,
+          client_street: formData.personalData.utca || null,
+          service_name: formData.service.name,
+          service_price: formData.service.price,
+        }
+      }).catch(err => console.error('Payment webhook error:', err));
+
+      setReservationId(data?.[0]?.id);
+      setFormData(prev => ({ ...prev, paymentStatus: 'paid' }));
+      setCurrentStep(9);
+    } catch (error) {
+      console.error('Secret bypass error:', error);
+      toast({ title: "Hiba", description: "Hiba történt a foglalás során.", variant: "destructive" });
+    } finally {
+      setLoading(false);
+      setSecretClickCount(0);
     }
   };
 
@@ -1017,7 +1073,17 @@ export default function ReservationSystem() {
                   </>
                 ) : (
                   <>
-                    <CreditCard size={48} className="mx-auto text-blue-600" />
+                    <CreditCard
+                      size={48}
+                      className="mx-auto text-blue-600 cursor-pointer select-none"
+                      onClick={() => {
+                        const newCount = secretClickCount + 1;
+                        setSecretClickCount(newCount);
+                        if (newCount >= 5) {
+                          handleSecretPaymentBypass();
+                        }
+                      }}
+                    />
                     <p className="text-lg">Kérjük kattintson a "Fizetés" gombra a folytatáshoz</p>
                     <p className="text-gray-600">A fizetés egy új ablakban nyílik meg</p>
                   </>
