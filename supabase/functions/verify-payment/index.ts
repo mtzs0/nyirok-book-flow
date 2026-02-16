@@ -43,6 +43,15 @@ serve(async (req) => {
     if (session.payment_status === 'paid') {
       console.log("verify-payment: Payment confirmed, creating reservation...");
       
+      // Generate invoice ID atomically
+      const { data: invoiceResult, error: invoiceError } = await supabase.rpc('next_invoice_id');
+      if (invoiceError) {
+        console.error("verify-payment: Error generating invoice ID:", invoiceError);
+        throw new Error(`Failed to generate invoice ID: ${invoiceError.message}`);
+      }
+      const invoiceId = invoiceResult as string;
+      console.log("verify-payment: Generated invoiceId:", invoiceId);
+
       // Create the reservation now that payment is confirmed
       const reservationPayload = {
         name: reservationData.personalData.fullName,
@@ -59,7 +68,8 @@ serve(async (req) => {
         therapist: reservationData.therapist.name,
         service: reservationData.service.name,
         notes: `Statements: ${reservationData.statements.join(', ')}`,
-        payment_status: 'paid'
+        payment_status: 'paid',
+        invoiceId: invoiceId
       };
 
       const { data, error } = await supabase
