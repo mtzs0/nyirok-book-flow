@@ -422,6 +422,13 @@ export default function ReservationSystem() {
     if (!formData.therapist || !formData.service || !formData.location) return;
     setLoading(true);
     try {
+      // Generate invoice ID
+      const { data: invoiceId, error: invoiceError } = await supabase.rpc('next_invoice_id');
+      if (invoiceError) {
+        console.error('Failed to generate invoice ID:', invoiceError);
+        throw invoiceError;
+      }
+
       const reservationPayload = {
         name: formData.personalData.fullName,
         email: formData.personalData.email,
@@ -437,7 +444,8 @@ export default function ReservationSystem() {
         therapist: formData.therapist.name,
         service: formData.service.name,
         notes: `Statements: ${formData.statements.join(', ')}`,
-        payment_status: 'paid'
+        payment_status: 'paid',
+        invoiceId: invoiceId as string
       };
 
       const { data, error } = await supabase
@@ -458,6 +466,7 @@ export default function ReservationSystem() {
           client_street: formData.personalData.utca || null,
           service_name: formData.service.name,
           service_price: formData.service.price,
+          invoiceId: invoiceId as string,
         }
       }).catch(err => console.error('Payment webhook error:', err));
 

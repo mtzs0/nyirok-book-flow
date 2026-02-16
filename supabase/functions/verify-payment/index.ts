@@ -95,6 +95,7 @@ serve(async (req) => {
           client_street: reservationData.personalData.utca || null,
           service_name: reservationData.service.name,
           service_price: reservationData.service.price,
+          invoiceId: invoiceId,
         };
         fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/notify-payment-webhook`, {
           method: 'POST',
