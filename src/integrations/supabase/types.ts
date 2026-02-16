@@ -278,6 +278,21 @@ export type Database = {
         }
         Relationships: []
       }
+      nyirok_invoice_counters: {
+        Row: {
+          last_number: number
+          year: number
+        }
+        Insert: {
+          last_number?: number
+          year: number
+        }
+        Update: {
+          last_number?: number
+          year?: number
+        }
+        Relationships: []
+      }
       nyirok_locations: {
         Row: {
           created_at: string
@@ -365,6 +380,7 @@ export type Database = {
           date: string
           email: string
           id: string
+          invoiceId: string | null
           iranyitoszam: string | null
           location: string
           name: string
@@ -385,6 +401,7 @@ export type Database = {
           date: string
           email: string
           id?: string
+          invoiceId?: string | null
           iranyitoszam?: string | null
           location: string
           name: string
@@ -405,6 +422,7 @@ export type Database = {
           date?: string
           email?: string
           id?: string
+          invoiceId?: string | null
           iranyitoszam?: string | null
           location?: string
           name?: string
@@ -643,6 +661,7 @@ export type Database = {
         Returns: boolean
       }
       is_staff_member: { Args: { _user_id: string }; Returns: boolean }
+      next_invoice_id: { Args: never; Returns: string }
     }
     Enums: {
       app_role: "admin" | "therapist" | "staff"
