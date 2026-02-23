@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Calendar, Clock, MapPin, User, Stethoscope, CreditCard, CheckCircle, ChevronRight, ChevronLeft, Mail, Phone } from 'lucide-react';
+import { Calendar, Clock, MapPin, User, Stethoscope, CreditCard, CheckCircle, ChevronRight, ChevronLeft, Mail, Phone, Edit, CalendarPlus } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from '@/hooks/use-toast';
@@ -35,6 +35,19 @@ interface Reservation {
   date: string;
   time: string;
   therapist_link: string;
+}
+
+interface ExistingReservation {
+  id: string;
+  date: string;
+  time: string;
+  therapist: string;
+  therapist_link: string;
+  service: string;
+  location: string;
+  name: string;
+  email: string;
+  phone: string;
 }
 
 interface FormData {
@@ -83,8 +96,19 @@ const STEPS = [
   { id: 9, title: "Összegzés", icon: CheckCircle }
 ];
 
+const MODIFY_STEPS = [
+  { id: 1, title: "Felhasználó", icon: Mail },
+  { id: 2, title: "Időpontok", icon: Calendar },
+  { id: 3, title: "Foglalás", icon: CheckCircle },
+  { id: 4, title: "Dátum", icon: Calendar },
+  { id: 5, title: "Időpont", icon: Clock },
+  { id: 6, title: "Terapeuta", icon: User },
+  { id: 7, title: "Véglegesítés", icon: CheckCircle }
+];
+
 export default function ReservationSystem() {
-  const [currentStep, setCurrentStep] = useState(1);
+  const [mode, setMode] = useState<'new' | 'modify' | null>(null);
+  const [currentStep, setCurrentStep] = useState(0); // 0 = mode selection
   const [formData, setFormData] = useState<FormData>({
     statements: [],
     location: null,
@@ -104,6 +128,12 @@ export default function ReservationSystem() {
      paymentStatus: 'pending',
   });
 
+  // Modify flow state
+  const [modifyEmail, setModifyEmail] = useState('');
+  const [existingReservations, setExistingReservations] = useState<ExistingReservation[]>([]);
+  const [selectedReservation, setSelectedReservation] = useState<ExistingReservation | null>(null);
+  const [loadingReservations, setLoadingReservations] = useState(false);
+
   const [locations, setLocations] = useState<Location[]>([]);
   const [personnel, setPersonnel] = useState<Personnel[]>([]);
   const [services, setServices] = useState<Service[]>([]);
@@ -115,6 +145,9 @@ export default function ReservationSystem() {
   const [calendarDate, setCalendarDate] = useState(new Date());
   const [secretClickCount, setSecretClickCount] = useState(0);
   const isMobile = useIsMobile();
+
+  const activeSteps = mode === 'modify' ? MODIFY_STEPS : STEPS;
+  const totalSteps = activeSteps.length;
 
   // Load initial data
   useEffect(() => {
@@ -140,7 +173,6 @@ export default function ReservationSystem() {
   // Handle cross-window communication for payment
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
-      // Only accept messages from our domain for security
       if (!event.origin.includes('mtzs0.github.io') && !event.origin.includes('localhost')) {
         return;
       }
@@ -163,6 +195,22 @@ export default function ReservationSystem() {
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
   }, []);
+
+  // Set location from selected reservation in modify mode
+  useEffect(() => {
+    if (mode === 'modify' && selectedReservation && currentStep >= 4) {
+      // Find the location object matching the reservation's location name
+      const matchingLocation = locations.find(l => l.name === selectedReservation.location);
+      if (matchingLocation && formData.location?.id !== matchingLocation.id) {
+        setFormData(prev => ({ 
+          ...prev, 
+          location: matchingLocation,
+          // In modify mode, don't require expert - show all therapists
+          statements: ["A fentiek közül egyik sem érvényes rám nézve"]
+        }));
+      }
+    }
+  }, [mode, selectedReservation, currentStep, locations]);
 
   const loadLocations = async () => {
     const { data, error } = await supabase
@@ -205,6 +253,29 @@ export default function ReservationSystem() {
     }
   };
 
+  const loadExistingReservations = async () => {
+    setLoadingReservations(true);
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    const todayStr = `${year}-${month}-${day}`;
+
+    const { data, error } = await supabase
+      .from('nyirok_reservations')
+      .select('id, date, time, therapist, therapist_link, service, location, name, email, phone')
+      .eq('email', modifyEmail)
+      .gte('date', todayStr)
+      .order('date', { ascending: true });
+    
+    setLoadingReservations(false);
+    if (data && !error) {
+      setExistingReservations(data);
+    } else {
+      setExistingReservations([]);
+    }
+  };
+
   const requiresExpert = () => {
     return !formData.statements.includes("A fentiek közül egyik sem érvényes rám nézve");
   };
@@ -213,12 +284,8 @@ export default function ReservationSystem() {
     if (!formData.location) return [];
     
     return personnel.filter(p => {
-      // Must be assigned to selected location
       if (p.location_id !== formData.location?.id) return false;
-      
-      // If user requires expert, only show highest level therapists
       if (requiresExpert() && p.rank_name !== "Rehabilitációs nyirok terapeuta") return false;
-      
       return true;
     });
   };
@@ -228,7 +295,6 @@ export default function ReservationSystem() {
     const available: string[] = [];
 
     TIME_SLOTS.forEach(timeSlot => {
-      // Check if at least one therapist is available for this time slot
       const hasAvailableTherapist = availableTherapists.some(therapist => {
         return !reservations.some(reservation => 
           reservation.therapist_link === therapist.id && 
@@ -272,19 +338,64 @@ export default function ReservationSystem() {
     }
   };
 
+  const handleModeSelect = (selectedMode: 'new' | 'modify') => {
+    setMode(selectedMode);
+    setCurrentStep(1);
+    // Reset form data when switching modes
+    setFormData({
+      statements: selectedMode === 'modify' ? ["A fentiek közül egyik sem érvényes rám nézve"] : [],
+      location: null,
+      date: '',
+      time: '',
+      therapist: null,
+      service: null,
+      personalData: { fullName: '', email: '', phone: '', iranyitoszam: '', varos: '', utca: '', birthday: '' },
+      paymentStatus: 'pending',
+    });
+    setModifyEmail('');
+    setExistingReservations([]);
+    setSelectedReservation(null);
+  };
+
   const handleNext = () => {
-    if (currentStep < 8) {
-      setCurrentStep(prev => prev + 1);
+    if (mode === 'modify') {
+      if (currentStep === 2) {
+        // Idopontok step - user must click a reservation, not use Tovabb
+        return;
+      }
+      if (currentStep < totalSteps) {
+        setCurrentStep(prev => prev + 1);
+      }
+    } else {
+      if (currentStep < 8) {
+        setCurrentStep(prev => prev + 1);
+      }
     }
   };
 
   const handleBack = () => {
-    if (currentStep > 1) {
+    if (currentStep === 1) {
+      // Go back to mode selection
+      setMode(null);
+      setCurrentStep(0);
+    } else {
       setCurrentStep(prev => prev - 1);
     }
   };
 
   const canProceed = () => {
+    if (mode === 'modify') {
+      switch (currentStep) {
+        case 1: return modifyEmail.trim() !== '';
+        case 2: return false; // Must click a reservation
+        case 3: return selectedReservation !== null;
+        case 4: return formData.date !== '';
+        case 5: return formData.time !== '';
+        case 6: return formData.therapist !== null;
+        case 7: return true;
+        default: return false;
+      }
+    }
     switch (currentStep) {
       case 1: return formData.statements.length > 0;
       case 2: return formData.location !== null;
@@ -295,7 +406,7 @@ export default function ReservationSystem() {
       case 7: return formData.personalData.fullName.trim() !== '' && 
                      formData.personalData.email.trim() !== '' && 
                      formData.personalData.phone.trim() !== '';
-      case 8: return true; // Payment step - button handles the logic
+      case 8: return true;
       default: return false;
     }
   };
@@ -306,7 +417,6 @@ export default function ReservationSystem() {
       setLoading(true);
       console.log('Starting payment process with data:', formData);
       
-      // Store reservation data in localStorage for retrieval after payment
       localStorage.setItem('reservation_data', JSON.stringify(formData));
       
       const { data, error } = await supabase.functions.invoke('create-payment', {
@@ -324,20 +434,16 @@ export default function ReservationSystem() {
 
       console.log('Payment URL received:', data.url);
       
-      // Store the session ID for verification
       if (data.sessionId) {
         localStorage.setItem('stripe_session_id', data.sessionId);
         setPaymentSessionId(data.sessionId);
       }
 
-      // Set processing status and open payment in new tab
       setFormData(prev => ({ ...prev, paymentStatus: 'processing' }));
       
-      // Open Stripe Checkout in new tab for embedded compatibility
       const paymentWindow = window.open(data.url, '_blank', 'width=600,height=700,scrollbars=yes,resizable=yes');
       
       if (!paymentWindow) {
-        // Popup blocked - show fallback
         toast({
           title: "Felugró ablak blokkolva",
           description: "Kérjük engedélyezze a felugró ablakokat és próbálja újra.",
@@ -371,7 +477,6 @@ export default function ReservationSystem() {
         throw new Error('Nincs fizetési azonosító');
       }
 
-      // Use saved reservation data if available, otherwise use current formData
       const reservationData = savedReservationData ? JSON.parse(savedReservationData) : formData;
       console.log('Verifying payment with session ID:', finalSessionId);
       
@@ -392,16 +497,14 @@ export default function ReservationSystem() {
       if (data.success && data.paymentStatus === 'paid') {
         console.log('Payment successful, reservation created:', data.reservation);
         
-        // Update form data if we used saved data
         if (savedReservationData) {
           setFormData(reservationData);
         }
         
         setReservationId(data.reservationId);
         setFormData(prev => ({ ...prev, paymentStatus: 'paid' }));
-        setCurrentStep(9); // Move to summary step
+        setCurrentStep(9);
         
-        // Clean up localStorage
         localStorage.removeItem('stripe_session_id');
         localStorage.removeItem('reservation_data');
       } else {
@@ -422,7 +525,6 @@ export default function ReservationSystem() {
     if (!formData.therapist || !formData.service || !formData.location) return;
     setLoading(true);
     try {
-      // Generate invoice ID
       const { data: invoiceId, error: invoiceError } = await supabase.rpc('next_invoice_id');
       if (invoiceError) {
         console.error('Failed to generate invoice ID:', invoiceError);
@@ -455,7 +557,6 @@ export default function ReservationSystem() {
 
       if (error) throw error;
 
-      // Fire payment webhook (fire-and-forget)
       supabase.functions.invoke('notify-payment-webhook', {
         body: {
           client_name: formData.personalData.fullName,
@@ -515,26 +616,7 @@ export default function ReservationSystem() {
         title: "Sikeres foglalás",
         description: "Foglalása sikeresen létrehozva!",
       });
-      // Reset form
-      setFormData({
-        statements: [],
-        location: null,
-        date: '',
-        time: '',
-        therapist: null,
-        service: null,
-        personalData: {
-          fullName: '',
-          email: '',
-          phone: '',
-          iranyitoszam: '',
-          varos: '',
-          utca: '',
-          birthday: '',
-        },
-        paymentStatus: 'pending',
-      });
-      setCurrentStep(1);
+      resetForm();
     } else {
       toast({
         title: "Foglalási hiba",
@@ -544,13 +626,66 @@ export default function ReservationSystem() {
     }
   };
 
+  const handleModifySubmit = async () => {
+    if (!selectedReservation || !formData.therapist) return;
+    
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('update-reservation', {
+        body: {
+          reservationId: selectedReservation.id,
+          date: formData.date,
+          time: formData.time,
+          therapist: formData.therapist.name,
+          therapist_link: formData.therapist.id,
+        }
+      });
+
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || 'Update failed');
+
+      toast({
+        title: "Sikeres módosítás",
+        description: "Az időpont sikeresen módosítva!",
+      });
+      resetForm();
+    } catch (error) {
+      console.error('Modify error:', error);
+      toast({
+        title: "Módosítási hiba",
+        description: "Hiba történt a módosítás során. Kérjük próbálja újra.",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const resetForm = () => {
+    setFormData({
+      statements: [],
+      location: null,
+      date: '',
+      time: '',
+      therapist: null,
+      service: null,
+      personalData: { fullName: '', email: '', phone: '', iranyitoszam: '', varos: '', utca: '', birthday: '' },
+      paymentStatus: 'pending',
+    });
+    setMode(null);
+    setCurrentStep(0);
+    setModifyEmail('');
+    setExistingReservations([]);
+    setSelectedReservation(null);
+  };
+
   const getDaysInMonth = (date: Date) => {
     return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
   };
 
   const getFirstDayOfMonth = (date: Date) => {
     const firstDay = new Date(date.getFullYear(), date.getMonth(), 1).getDay();
-    return firstDay === 0 ? 6 : firstDay - 1; // Convert Sunday (0) to 6, and adjust for Monday start
+    return firstDay === 0 ? 6 : firstDay - 1;
   };
 
   const formatDateForInput = (date: Date) => {
@@ -577,7 +712,6 @@ export default function ReservationSystem() {
 
   const handleDateSelect = (day: number) => {
     const selectedDate = new Date(calendarDate.getFullYear(), calendarDate.getMonth(), day);
-    // Fix timezone issue by using local date string format
     const year = selectedDate.getFullYear();
     const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
     const dayStr = String(selectedDate.getDate()).padStart(2, '0');
@@ -600,14 +734,12 @@ export default function ReservationSystem() {
     
     const days = [];
     
-    // Empty cells for days before the first day of the month
     for (let i = 0; i < firstDay; i++) {
       days.push(
         <div key={`empty-${i}`} className="h-10 w-10"></div>
       );
     }
     
-    // Days of the month
     for (let day = 1; day <= daysInMonth; day++) {
       const date = new Date(calendarDate.getFullYear(), calendarDate.getMonth(), day);
       const isDisabled = isDateDisabled(date);
@@ -676,18 +808,20 @@ export default function ReservationSystem() {
   };
 
   const renderProgressBar = () => {
-    const progress = (currentStep / 9) * 100;
+    if (currentStep === 0) return null; // No progress bar on mode selection
+
+    const steps = activeSteps;
+    const progress = (currentStep / steps.length) * 100;
     
     return (
       <div className="mb-8">
         <div className="flex justify-between items-center mb-4 overflow-x-auto">
           <div className="flex justify-between items-center w-full px-1 md:px-0 gap-1 md:gap-0">
-            {STEPS.map((step, index) => {
+            {steps.map((step) => {
               const Icon = step.icon;
               const isActive = currentStep === step.id;
               const isCompleted = currentStep > step.id;
               
-              // On mobile, only show the current step
               if (isMobile && !isActive) {
                 return null;
               }
@@ -705,7 +839,7 @@ export default function ReservationSystem() {
                   </span>
                   {isMobile && (
                     <span className="text-[8px] text-gray-500 mt-1">
-                      {currentStep} / {STEPS.length}
+                      {currentStep} / {steps.length}
                     </span>
                   )}
                 </div>
@@ -723,7 +857,315 @@ export default function ReservationSystem() {
     );
   };
 
+  const renderModeSelection = () => {
+    return (
+      <div className="space-y-6 h-full flex flex-col items-center justify-center">
+        <h2 className="text-2xl font-bold text-gray-800 mb-4 text-center">Mit szeretne csinálni?</h2>
+        <div className="flex flex-col gap-4 w-full max-w-md">
+          <button
+            onClick={() => handleModeSelect('new')}
+            className="p-6 border-2 border-gray-200 rounded-xl hover:border-green-600 hover:bg-green-50 transition-colors flex items-center space-x-4"
+          >
+            <CalendarPlus className="text-green-600 flex-shrink-0" size={32} />
+            <div className="text-left">
+              <h3 className="text-lg font-semibold text-gray-800">Időpontfoglalás</h3>
+              <p className="text-gray-600 text-sm">Új időpont foglalása</p>
+            </div>
+          </button>
+          <button
+            onClick={() => handleModeSelect('modify')}
+            className="p-6 border-2 border-gray-200 rounded-xl hover:border-green-600 hover:bg-green-50 transition-colors flex items-center space-x-4"
+          >
+            <Edit className="text-green-600 flex-shrink-0" size={32} />
+            <div className="text-left">
+              <h3 className="text-lg font-semibold text-gray-800">Meglévő időpont módosítása</h3>
+              <p className="text-gray-600 text-sm">Korábban foglalt időpont átütemezése</p>
+            </div>
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  const renderModifyStep = () => {
+    switch (currentStep) {
+      case 1: // Felhasználó - email input
+        return (
+          <div className="space-y-6 h-full flex flex-col">
+            <div className="flex-shrink-0">
+              <h2 className="text-2xl font-bold text-gray-800 mb-2">Felhasználó</h2>
+              <p className="text-gray-600">Kérjük adja meg az e-mail címét, amellyel a foglalást létrehozta</p>
+            </div>
+            <div className="flex-1 min-h-0 flex items-start justify-center pt-8">
+              <div className="w-full max-w-md">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  E-mail cím *
+                </label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
+                  <input
+                    type="email"
+                    className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    placeholder="pelda@email.hu"
+                    value={modifyEmail}
+                    onChange={(e) => setModifyEmail(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && modifyEmail.trim()) {
+                        loadExistingReservations();
+                        setCurrentStep(2);
+                      }
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+
+      case 2: // Időpontok - list future reservations
+        return (
+          <div className="space-y-4 h-full flex flex-col">
+            <div className="flex-shrink-0">
+              <h2 className="text-2xl font-bold text-gray-800 mb-2">Időpontok</h2>
+              <p className="text-gray-600">Válassza ki a módosítani kívánt foglalást</p>
+            </div>
+            <div className="flex-1 min-h-0">
+              {loadingReservations ? (
+                <div className="flex items-center justify-center h-full">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+                </div>
+              ) : existingReservations.length === 0 ? (
+                <div className="flex items-center justify-center h-full text-gray-500">
+                  <p>Nem található jövőbeli foglalás ezzel az e-mail címmel.</p>
+                </div>
+              ) : (
+                <ScrollArea className="h-full">
+                  <div className="space-y-3 pr-4">
+                    {existingReservations.map((res) => (
+                      <div
+                        key={res.id}
+                        className="p-4 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-green-600 hover:bg-green-50 transition-colors"
+                        onClick={() => {
+                          setSelectedReservation(res);
+                          setCurrentStep(3);
+                        }}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-4">
+                            <Calendar className="text-green-600 flex-shrink-0" size={20} />
+                            <div>
+                              <p className="font-semibold text-gray-800">
+                                {res.date} / {res.time}
+                              </p>
+                              <p className="text-gray-600 text-sm">
+                                {res.therapist} / {res.service}
+                              </p>
+                            </div>
+                          </div>
+                          <ChevronRight className="text-gray-400" size={20} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+              )}
+            </div>
+          </div>
+        );
+
+      case 3: // Foglalás - display selected reservation details
+        return (
+          <div className="space-y-6 h-full flex flex-col">
+            <div className="flex-shrink-0">
+              <h2 className="text-2xl font-bold text-gray-800 mb-2">Foglalt időpont adatai</h2>
+              <p className="text-gray-600">Az alábbi foglalást kívánja módosítani</p>
+            </div>
+            <div className="flex-1 min-h-0">
+              {selectedReservation && (
+                <div className="bg-gray-50 rounded-xl p-6 space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <h4 className="font-medium text-gray-700 mb-1">Dátum</h4>
+                      <p className="text-gray-900">{selectedReservation.date}</p>
+                    </div>
+                    <div>
+                      <h4 className="font-medium text-gray-700 mb-1">Időpont</h4>
+                      <p className="text-gray-900">{selectedReservation.time}</p>
+                    </div>
+                    <div>
+                      <h4 className="font-medium text-gray-700 mb-1">Szolgáltatás</h4>
+                      <p className="text-gray-900">{selectedReservation.service}</p>
+                    </div>
+                    <div>
+                      <h4 className="font-medium text-gray-700 mb-1">Terapeuta</h4>
+                      <p className="text-gray-900">{selectedReservation.therapist}</p>
+                    </div>
+                    <div className="md:col-span-2">
+                      <h4 className="font-medium text-gray-700 mb-1">Helyszín</h4>
+                      <p className="text-gray-900">{selectedReservation.location}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+
+      case 4: // Dátum
+        return (
+          <div className="space-y-6 h-full flex flex-col">
+            <div className="flex-shrink-0">
+              <h2 className="text-2xl font-bold text-gray-800 mb-2">Válassz új dátumot</h2>
+              <p className="text-gray-600">Mikor szeretnéd az új időpontot?</p>
+            </div>
+            <div className="flex-1 min-h-0 flex justify-center items-start pt-4">
+              {renderCalendar()}
+            </div>
+          </div>
+        );
+
+      case 5: // Időpont
+        return (
+          <div className="space-y-6 h-full flex flex-col">
+            <div className="flex-shrink-0">
+              <h2 className="text-2xl font-bold text-gray-800 mb-2">Válassz új időpontot</h2>
+              <p className="text-gray-600">Milyen időpontban szeretnéd az új kezelést?</p>
+            </div>
+            <div className="flex-1 min-h-0">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 h-full content-start">
+                {TIME_SLOTS.map((timeSlot) => {
+                  const isAvailable = availableTimeSlots.includes(timeSlot);
+                  return (
+                    <div
+                      key={timeSlot}
+                      className={`p-4 border rounded-lg cursor-pointer transition-colors ${
+                        formData.time === timeSlot ? 'border-green-600 bg-green-50' : 
+                        !isAvailable ? 'border-gray-200 bg-gray-100 cursor-not-allowed' : 'border-gray-200 bg-white hover:border-gray-300'
+                      }`}
+                      onClick={() => isAvailable && setFormData(prev => ({ ...prev, time: timeSlot }))}
+                    >
+                      <div className="flex items-center justify-center space-x-2">
+                        <Clock size={16} className={isAvailable ? 'text-green-600' : 'text-gray-400'} />
+                        <span className={`font-medium ${isAvailable ? 'text-gray-800' : 'text-gray-400'}`}>
+                          {timeSlot}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        );
+
+      case 6: // Terapeuta
+        const availableTherapists = getAvailableTherapistsForTimeSlot();
+        return (
+          <div className="space-y-6 h-full flex flex-col">
+            <div className="flex-shrink-0">
+              <h2 className="text-2xl font-bold text-gray-800 mb-2">Válassz terapeutát</h2>
+              <p className="text-gray-600">Ki végezze el a kezelést?</p>
+            </div>
+            <div className="flex-1 min-h-0">
+              <ScrollArea className="h-full">
+                <div className="space-y-4 pr-4">
+                  {availableTherapists.map((therapist) => (
+                    <div
+                      key={therapist.id}
+                      className={`p-4 border rounded-lg cursor-pointer transition-colors ${formData.therapist?.id === therapist.id ? 'border-green-600 bg-green-50' : 'border-gray-200 bg-white hover:border-gray-300'}`}
+                      onClick={() => setFormData(prev => ({ ...prev, therapist }))}
+                    >
+                      <div className="flex items-start space-x-3">
+                        <User className="text-green-600 mt-1" size={20} />
+                        <div className="flex-1">
+                          <div className="flex items-center space-x-2">
+                            <h3 className="font-semibold text-gray-800">{therapist.name}</h3>
+                            {therapist.rank_name && (
+                              <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">
+                                {therapist.rank_name}
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-gray-600 text-sm">{therapist.role}</p>
+                          {therapist.description && (
+                            <p className="text-gray-500 text-sm mt-1">{therapist.description}</p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+            </div>
+          </div>
+        );
+
+      case 7: // Véglegesítés
+        return (
+          <div className="space-y-6 h-full flex flex-col">
+            <div className="flex-shrink-0">
+              <h2 className="text-2xl font-bold text-gray-800 mb-2">Véglegesítés</h2>
+              <p className="text-gray-600">Ellenőrizze az új időpont adatait</p>
+            </div>
+            <div className="flex-1 min-h-0">
+              <div className="bg-gray-50 rounded-xl p-6 space-y-4">
+                <h3 className="font-semibold text-gray-800 mb-2">Eredeti időpont</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                  <div>
+                    <h4 className="font-medium text-gray-500 text-sm">Dátum</h4>
+                    <p className="text-gray-700 line-through">{selectedReservation?.date}</p>
+                  </div>
+                  <div>
+                    <h4 className="font-medium text-gray-500 text-sm">Időpont</h4>
+                    <p className="text-gray-700 line-through">{selectedReservation?.time}</p>
+                  </div>
+                  <div>
+                    <h4 className="font-medium text-gray-500 text-sm">Terapeuta</h4>
+                    <p className="text-gray-700 line-through">{selectedReservation?.therapist}</p>
+                  </div>
+                </div>
+
+                <hr className="border-gray-300" />
+
+                <h3 className="font-semibold text-green-700 mb-2">Új időpont</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <h4 className="font-medium text-gray-700 text-sm">Dátum</h4>
+                    <p className="text-gray-900 font-semibold">{formData.date}</p>
+                  </div>
+                  <div>
+                    <h4 className="font-medium text-gray-700 text-sm">Időpont</h4>
+                    <p className="text-gray-900 font-semibold">{formData.time}</p>
+                  </div>
+                  <div>
+                    <h4 className="font-medium text-gray-700 text-sm">Terapeuta</h4>
+                    <p className="text-gray-900 font-semibold">{formData.therapist?.name}</p>
+                  </div>
+                </div>
+
+                <div className="mt-4">
+                  <h4 className="font-medium text-gray-700 text-sm">Szolgáltatás</h4>
+                  <p className="text-gray-900">{selectedReservation?.service}</p>
+                </div>
+                <div>
+                  <h4 className="font-medium text-gray-700 text-sm">Helyszín</h4>
+                  <p className="text-gray-900">{selectedReservation?.location}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+
+      default:
+        return null;
+    }
+  };
+
   const renderStep = () => {
+    if (currentStep === 0) return renderModeSelection();
+    if (mode === 'modify') return renderModifyStep();
+
+    // New booking flow (same as before)
     switch (currentStep) {
       case 1:
         return (
@@ -1149,48 +1591,82 @@ export default function ReservationSystem() {
     }
   };
 
+  // Determine button labels and behavior
+  const getNextButtonLabel = () => {
+    if (mode === 'modify' && currentStep === 3) return 'Foglalás módosítása';
+    if (mode === 'modify' && currentStep === 7) return 'Véglegesítés';
+    return 'Tovább';
+  };
+
+  const handleNextAction = () => {
+    if (mode === 'modify' && currentStep === 1) {
+      // Load reservations when going from email step
+      loadExistingReservations();
+      setCurrentStep(2);
+    } else if (mode === 'modify' && currentStep === 7) {
+      handleModifySubmit();
+    } else {
+      handleNext();
+    }
+  };
+
+  const isLastStep = () => {
+    if (mode === 'modify') return currentStep === 7;
+    return currentStep === 9;
+  };
+
+  const showPaymentButton = () => {
+    return mode === 'new' && currentStep === 8;
+  };
+
   return (
     <div className="w-full bg-white">
       <div className="max-w-4xl mx-auto p-6 bg-white">
         <div className="bg-white p-8 rounded-lg shadow-sm border border-gray-200" style={{ height: '900px' }}>
           {renderProgressBar()}
           
-          <div className="bg-white" style={{ height: '537px' }}>
+          <div className="bg-white" style={{ height: currentStep === 0 ? '700px' : '537px' }}>
             {renderStep()}
           </div>
           
-          <div className="flex justify-between mt-8 pt-6 border-t border-gray-200 bg-white">
-            <button
-              onClick={handleBack}
-              disabled={currentStep === 1}
-              className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors flex items-center space-x-2 disabled:opacity-50"
-            >
-              <ChevronLeft size={20} />
-              <span>Vissza</span>
-            </button>
-            
-            {currentStep === 8 ? (
+          {currentStep > 0 && (
+            <div className="flex justify-between mt-8 pt-6 border-t border-gray-200 bg-white">
               <button
-                onClick={handlePayment}
-                disabled={loading}
-                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
+                onClick={handleBack}
+                className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors flex items-center space-x-2"
               >
-                {loading ? 'Fizetés...' : 'Fizetés'}
-                <CreditCard size={20} />
+                <ChevronLeft size={20} />
+                <span>Vissza</span>
               </button>
-            ) : currentStep === 9 ? (
-              null
-            ) : (
-              <button
-                onClick={handleNext}
-                disabled={!canProceed()}
-                className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <span>Tovább</span>
-                <ChevronRight size={20} />
-              </button>
-            )}
-          </div>
+              
+              {showPaymentButton() ? (
+                <button
+                  onClick={handlePayment}
+                  disabled={loading}
+                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
+                >
+                  {loading ? 'Fizetés...' : 'Fizetés'}
+                  <CreditCard size={20} />
+                </button>
+              ) : isLastStep() ? (
+                null
+              ) : (mode === 'modify' && currentStep === 2) ? (
+                // Idopontok step - no Tovabb button, user must click a reservation
+                null
+              ) : (
+                <button
+                  onClick={handleNextAction}
+                  disabled={!canProceed() || loading}
+                  className={`px-6 py-2 text-white rounded-lg transition-colors flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed ${
+                    mode === 'modify' && currentStep === 7 ? 'bg-green-600 hover:bg-green-700' : 'bg-green-600 hover:bg-green-700'
+                  }`}
+                >
+                  <span>{loading ? 'Feldolgozás...' : getNextButtonLabel()}</span>
+                  <ChevronRight size={20} />
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>
