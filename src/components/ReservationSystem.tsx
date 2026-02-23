@@ -1652,8 +1652,17 @@ export default function ReservationSystem() {
                   {loading ? 'Fizetés...' : 'Fizetés'}
                   <CreditCard size={20} />
                 </button>
-              ) : isLastStep() ? (
+              ) : (mode === 'new' && isLastStep()) ? (
                 null
+              ) : (mode === 'modify' && currentStep === 7) ? (
+                <button
+                  onClick={handleModifySubmit}
+                  disabled={loading}
+                  className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <span>{loading ? 'Feldolgozás...' : 'Véglegesítés'}</span>
+                  <CheckCircle size={20} />
+                </button>
               ) : (mode === 'modify' && currentStep === 2) ? (
                 // Idopontok step - no Tovabb button, user must click a reservation
                 null
