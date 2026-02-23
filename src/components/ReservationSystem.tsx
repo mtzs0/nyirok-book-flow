@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Calendar, Clock, MapPin, User, Stethoscope, CreditCard, CheckCircle, ChevronRight, ChevronLeft, Mail, Phone, Edit, CalendarPlus } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -521,8 +521,12 @@ export default function ReservationSystem() {
     }
   };
 
+  const bypassInProgressRef = useRef(false);
+
   const handleSecretPaymentBypass = async () => {
     if (!formData.therapist || !formData.service || !formData.location) return;
+    if (bypassInProgressRef.current) return;
+    bypassInProgressRef.current = true;
     setLoading(true);
     try {
       const { data: invoiceId, error: invoiceError } = await supabase.rpc('next_invoice_id');
@@ -580,6 +584,7 @@ export default function ReservationSystem() {
     } finally {
       setLoading(false);
       setSecretClickCount(0);
+      bypassInProgressRef.current = false;
     }
   };
 
