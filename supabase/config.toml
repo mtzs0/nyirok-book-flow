@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.notify-payment-webhook]
 verify_jwt = false
+
+[functions.update-reservation]
+verify_jwt = false
