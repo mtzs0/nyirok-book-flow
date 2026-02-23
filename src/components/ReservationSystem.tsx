@@ -860,7 +860,6 @@ export default function ReservationSystem() {
   const renderModeSelection = () => {
     return (
       <div className="space-y-6 h-full flex flex-col items-center justify-center">
-        <h2 className="text-2xl font-bold text-gray-800 mb-4 text-center">Mit szeretne csinálni?</h2>
         <div className="flex flex-col gap-4 w-full max-w-md">
           <button
             onClick={() => handleModeSelect('new')}
