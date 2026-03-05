@@ -301,6 +301,31 @@ export default function ReservationSystem() {
     }
   };
 
+  const loadUserPasses = async (email: string) => {
+    const { data, error } = await supabase
+      .from('nyirok_passes')
+      .select('*')
+      .eq('email', email)
+      .eq('status', 'active')
+      .gt('expiry_date', new Date().toISOString());
+    
+    if (data && !error) {
+      // Filter to only passes with remaining uses
+      setUserPasses(data.filter((p: any) => p.used_treatments < p.total_treatments));
+    } else {
+      setUserPasses([]);
+    }
+  };
+
+  const getPassForService = (serviceId: string): Pass | null => {
+    return userPasses.find(p => p.service_id === serviceId) || null;
+  };
+
+  const calculatePassPrice = (service: Service): number => {
+    if (service.pass_price_override > 0) return service.pass_price_override;
+    return service.pass_paid_treatments * service.price;
+  };
+
   const requiresExpert = () => {
     return !formData.statements.includes("A fentiek közül egyik sem érvényes rám nézve");
   };
