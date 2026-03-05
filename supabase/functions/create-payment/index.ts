@@ -16,33 +16,37 @@ serve(async (req) => {
   try {
     console.log("create-payment: Function started");
 
-    const { reservationData } = await req.json();
+    const { reservationData, passPrice } = await req.json();
     
     if (!reservationData) {
       throw new Error("Reservation data required");
     }
 
-    console.log("create-payment: Received reservation data:", reservationData);
+    console.log("create-payment: Received reservation data:", reservationData, "passPrice:", passPrice);
 
     // Initialize Stripe
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
       apiVersion: "2025-08-27.basil",
     });
 
-    // Fixed booking fee - configurable for testing purposes
-    const BOOKING_FEE_HUF = 300;
+    // Use passPrice if provided (pass purchase), otherwise fixed booking fee
+    const isPassPurchase = !!passPrice && passPrice > 0;
+    const BOOKING_FEE_HUF = isPassPurchase ? passPrice : 300;
     
-    // HUF is a two-decimal currency - amounts must be in fillér (minor units)
-    // 1 HUF = 100 fillér, so multiply by 100 for Stripe API
     const priceInMinorUnits = BOOKING_FEE_HUF * 100;
     
-    console.log("create-payment: Using fixed booking fee:", { 
+    console.log("create-payment: Using fee:", { 
+      isPassPurchase,
       bookingFeeHuf: BOOKING_FEE_HUF,
       priceInMinorUnits
     });
 
-    // HUF is a two-decimal currency for Stripe - amounts must be in fillér (minor units)
-    console.log("create-payment: About to create session with unit_amount:", priceInMinorUnits);
+    const productName = isPassPurchase 
+      ? 'Nyirok Klinika bérlet vásárlás' 
+      : 'Nyirok Klinika kezelés foglalási díj';
+    const productDescription = isPassPurchase
+      ? 'Nyirokterápia bérlet'
+      : 'Nyirokterápia foglalási díj';
 
     const sessionData = {
       customer_email: reservationData.personalData.email,
@@ -51,8 +55,8 @@ serve(async (req) => {
           price_data: {
             currency: 'huf',
             product_data: {
-              name: 'Nyirok Klinika kezelés foglalási díj',
-              description: 'Nyirokterápia foglalási díj',
+              name: productName,
+              description: productDescription,
             },
             unit_amount: priceInMinorUnits,
           },

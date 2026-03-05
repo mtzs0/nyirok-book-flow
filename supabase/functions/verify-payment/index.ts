@@ -84,6 +84,42 @@ serve(async (req) => {
 
       console.log("verify-payment: Reservation created successfully:", data);
 
+      const reservationId = data[0].id;
+
+      // Handle pass purchase if passPurchaseData is provided
+      if (reservationData.passPurchaseData) {
+        const ppd = reservationData.passPurchaseData;
+        console.log("verify-payment: Creating new pass for purchase:", ppd);
+
+        const passPayload = {
+          email: ppd.email,
+          name: ppd.name,
+          service_id: ppd.service_id,
+          total_treatments: ppd.total_treatments,
+          used_treatments: 1,
+          purchase_date: new Date().toISOString(),
+          expiry_date: ppd.expiry_date,
+          status: ppd.total_treatments <= 1 ? 'used' : 'active',
+          invoice_id: invoiceId,
+        };
+
+        const { data: passData, error: passError } = await supabase
+          .from('nyirok_passes')
+          .insert([passPayload])
+          .select();
+
+        if (passError) {
+          console.error("verify-payment: Error creating pass:", passError);
+        } else {
+          // Log pass use
+          await supabase.from('nyirok_pass_uses').insert([{
+            pass_id: passData[0].id,
+            reservation_id: reservationId,
+          }]);
+          console.log("verify-payment: Pass created and use logged:", passData[0].id);
+        }
+      }
+
       // Fire-and-forget: notify payment webhook with customer + service data
       try {
         const webhookPayload = {
@@ -109,7 +145,7 @@ serve(async (req) => {
       return new Response(JSON.stringify({
         success: true,
         paymentStatus: 'paid',
-        reservationId: data[0].id,
+        reservationId: reservationId,
         reservation: data[0]
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },

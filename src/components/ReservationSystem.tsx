@@ -28,6 +28,21 @@ interface Service {
   price: number;
   time: number;
   time_end: number;
+  pass_enabled: boolean;
+  pass_total_treatments: number;
+  pass_paid_treatments: number;
+  pass_expiry_days: number;
+  pass_price_override: number;
+}
+
+interface Pass {
+  id: string;
+  email: string;
+  service_id: string;
+  total_treatments: number;
+  used_treatments: number;
+  expiry_date: string;
+  status: string;
 }
 
 interface Reservation {
@@ -150,6 +165,12 @@ export default function ReservationSystem() {
   const [calendarDate, setCalendarDate] = useState(new Date());
   const [secretClickCount, setSecretClickCount] = useState(0);
   const isMobile = useIsMobile();
+
+  // Pass system state
+  const [userPasses, setUserPasses] = useState<Pass[]>([]);
+  const [selectedPass, setSelectedPass] = useState<Pass | null>(null);
+  const [passPurchaseMode, setPassPurchaseMode] = useState(false);
+  const [passPrice, setPassPrice] = useState(0);
 
   const activeSteps = mode === 'modify' ? MODIFY_STEPS : STEPS;
   const totalSteps = activeSteps.length;
@@ -280,6 +301,31 @@ export default function ReservationSystem() {
     }
   };
 
+  const loadUserPasses = async (email: string) => {
+    const { data, error } = await supabase
+      .from('nyirok_passes')
+      .select('*')
+      .eq('email', email)
+      .eq('status', 'active')
+      .gt('expiry_date', new Date().toISOString());
+    
+    if (data && !error) {
+      // Filter to only passes with remaining uses
+      setUserPasses(data.filter((p: any) => p.used_treatments < p.total_treatments));
+    } else {
+      setUserPasses([]);
+    }
+  };
+
+  const getPassForService = (serviceId: string): Pass | null => {
+    return userPasses.find(p => p.service_id === serviceId) || null;
+  };
+
+  const calculatePassPrice = (service: Service): number => {
+    if (service.pass_price_override > 0) return service.pass_price_override;
+    return service.pass_paid_treatments * service.price;
+  };
+
   const requiresExpert = () => {
     return !formData.statements.includes("A fentiek közül egyik sem érvényes rám nézve");
   };
@@ -365,6 +411,10 @@ export default function ReservationSystem() {
 
   const handleReturningEmailContinue = () => {
     setReturningSubStep('choose');
+    // Load passes for returning user
+    if (modifyEmail.trim()) {
+      loadUserPasses(modifyEmail.trim());
+    }
   };
 
   const handleReturningActionChoice = (action: 'new' | 'modify') => {
@@ -410,6 +460,11 @@ export default function ReservationSystem() {
         setCurrentStep(prev => prev + 1);
       }
     } else {
+      // If using existing pass and on step 7 (Adatok), skip step 8 (payment) -> go to 9
+      if (selectedPass && currentStep === 7) {
+        handlePassUseSubmit();
+        return;
+      }
       if (currentStep < 8) {
         setCurrentStep(prev => prev + 1);
       }
@@ -481,8 +536,29 @@ export default function ReservationSystem() {
       
       localStorage.setItem('reservation_data', JSON.stringify(formData));
       
+      const paymentBody: any = { reservationData: formData };
+      
+      // If buying a pass, send passPrice and passPurchaseData
+      if (passPurchaseMode && passPrice > 0 && formData.service) {
+        paymentBody.passPrice = passPrice;
+        const service = formData.service;
+        const expiryDate = service.pass_expiry_days > 0
+          ? new Date(Date.now() + service.pass_expiry_days * 86400000).toISOString()
+          : '3000-01-01T00:00:00.000Z';
+        paymentBody.reservationData = {
+          ...formData,
+          passPurchaseData: {
+            email: formData.personalData.email,
+            name: formData.personalData.fullName,
+            service_id: service.id,
+            total_treatments: service.pass_total_treatments,
+            expiry_date: expiryDate,
+          }
+        };
+      }
+
       const { data, error } = await supabase.functions.invoke('create-payment', {
-        body: { reservationData: formData }
+        body: paymentBody
       });
 
       if (error) {
@@ -650,6 +726,74 @@ export default function ReservationSystem() {
     }
   };
 
+  // Handle using an existing pass (skips payment)
+  const handlePassUseSubmit = async () => {
+    if (!formData.therapist || !formData.service || !formData.location || !selectedPass) return;
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('use-pass', {
+        body: {
+          passId: selectedPass.id,
+          reservationData: formData,
+          isNewPass: false,
+        }
+      });
+      if (error) throw error;
+      if (!data?.success) throw new Error('Failed to use pass');
+
+      setReservationId(data.reservationId);
+      setFormData(prev => ({ ...prev, paymentStatus: 'paid' }));
+      setCurrentStep(9);
+    } catch (error) {
+      console.error('Pass use error:', error);
+      toast({ title: "Hiba", description: "Hiba történt a bérlet felhasználásakor.", variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle pass purchase via secret bypass (5 clicks)
+  const handlePassPurchaseBypass = async () => {
+    if (!formData.therapist || !formData.service || !formData.location) return;
+    if (bypassInProgressRef.current) return;
+    bypassInProgressRef.current = true;
+    setLoading(true);
+    try {
+      const service = formData.service;
+      const expiryDate = service.pass_expiry_days > 0
+        ? new Date(Date.now() + service.pass_expiry_days * 86400000).toISOString()
+        : '3000-01-01T00:00:00.000Z';
+
+      const { data, error } = await supabase.functions.invoke('use-pass', {
+        body: {
+          reservationData: formData,
+          isNewPass: true,
+          newPassData: {
+            email: formData.personalData.email,
+            name: formData.personalData.fullName,
+            service_id: service.id,
+            total_treatments: service.pass_total_treatments,
+            expiry_date: expiryDate,
+            invoice_id: '',
+          },
+        }
+      });
+      if (error) throw error;
+      if (!data?.success) throw new Error('Failed to create pass');
+
+      setReservationId(data.reservationId);
+      setFormData(prev => ({ ...prev, paymentStatus: 'paid' }));
+      setCurrentStep(9);
+    } catch (error) {
+      console.error('Pass purchase bypass error:', error);
+      toast({ title: "Hiba", description: "Hiba történt a bérlet vásárlásakor.", variant: "destructive" });
+    } finally {
+      setLoading(false);
+      setSecretClickCount(0);
+      bypassInProgressRef.current = false;
+    }
+  };
+
   const handleSubmit = async () => {
     if (!formData.therapist || !formData.service || !formData.location) return;
     
@@ -746,6 +890,10 @@ export default function ReservationSystem() {
     setModifyEmail('');
     setExistingReservations([]);
     setSelectedReservation(null);
+    setUserPasses([]);
+    setSelectedPass(null);
+    setPassPurchaseMode(false);
+    setPassPrice(0);
   };
 
   // Calendar helpers
@@ -1435,6 +1583,9 @@ export default function ReservationSystem() {
         );
 
       case 6:
+        const filteredServices = formData.therapist?.service_ids 
+          ? services.filter(s => formData.therapist!.service_ids.includes(s.id))
+          : services;
         return (
           <div className="space-y-6 h-full flex flex-col">
             <div className="flex-shrink-0">
@@ -1444,31 +1595,83 @@ export default function ReservationSystem() {
             <div className="flex-1 min-h-0">
               <ScrollArea className="h-full">
                 <div className="space-y-4 pr-4">
-                  {services.map((service) => (
-                    <div
-                      key={service.id}
-                      className={`p-4 border rounded-lg cursor-pointer transition-colors ${formData.service?.id === service.id ? 'border-green-600 bg-green-50' : 'border-gray-200 bg-white hover:border-gray-300'}`}
-                      onClick={() => setFormData(prev => ({ ...prev, service }))}
-                    >
-                      <div className="flex items-start space-x-3">
-                        <Stethoscope className="text-green-600 mt-1" size={20} />
-                        <div className="flex-1">
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <h3 className="font-semibold text-gray-800">{service.name}</h3>
-                              {service.description && (
-                                <p className="text-gray-600 text-sm mt-1">{service.description}</p>
-                              )}
-                              <p className="text-gray-500 text-sm mt-1">{service.time}-{service.time_end} perc</p>
+                  {filteredServices.map((service) => {
+                    const existingPass = getPassForService(service.id);
+                    const pPrice = calculatePassPrice(service);
+                    return (
+                      <div
+                        key={service.id}
+                        className={`p-4 border rounded-lg cursor-pointer transition-colors ${formData.service?.id === service.id ? 'border-green-600 bg-green-50' : 'border-gray-200 bg-white hover:border-gray-300'}`}
+                        onClick={() => {
+                          setSelectedPass(null);
+                          setPassPurchaseMode(false);
+                          setPassPrice(0);
+                          setFormData(prev => ({ ...prev, service }));
+                        }}
+                      >
+                        <div className="flex items-start space-x-3">
+                          <Stethoscope className="text-green-600 mt-1" size={20} />
+                          <div className="flex-1">
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <h3 className="font-semibold text-gray-800">{service.name}</h3>
+                                {service.description && (
+                                  <p className="text-gray-600 text-sm mt-1">{service.description}</p>
+                                )}
+                                <p className="text-gray-500 text-sm mt-1">{service.time}-{service.time_end} perc</p>
+                              </div>
+                              <span className="text-green-600 font-bold text-lg">
+                                {service.price.toLocaleString()} Ft
+                              </span>
                             </div>
-                            <span className="text-green-600 font-bold text-lg">
-                              {service.price.toLocaleString()} Ft
-                            </span>
+                            
+                            {/* Pass buttons */}
+                            <div className="mt-3 flex flex-wrap items-center gap-2">
+                              {existingPass ? (
+                                <>
+                                  <button
+                                    className="px-3 py-1.5 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setSelectedPass(existingPass);
+                                      setPassPurchaseMode(false);
+                                      setPassPrice(0);
+                                      setFormData(prev => ({ ...prev, service }));
+                                    }}
+                                  >
+                                    Bérlet igénybevétele
+                                  </button>
+                                  <span className="text-green-700 text-sm">
+                                    Jelenleg {existingPass.total_treatments - existingPass.used_treatments} alkalmat tud még bérlettel igénybe venni
+                                  </span>
+                                </>
+                              ) : null}
+                              
+                              {service.pass_enabled && (
+                                <>
+                                  <button
+                                    className="px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setSelectedPass(null);
+                                      setPassPurchaseMode(true);
+                                      setPassPrice(pPrice);
+                                      setFormData(prev => ({ ...prev, service }));
+                                    }}
+                                  >
+                                    {service.pass_total_treatments} alkalmas bérlet vásárlása
+                                  </button>
+                                  <span className="text-blue-700 text-sm font-medium">
+                                    {pPrice.toLocaleString()} Ft
+                                  </span>
+                                </>
+                              )}
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </ScrollArea>
             </div>
@@ -1621,6 +1824,8 @@ export default function ReservationSystem() {
         );
 
       case 8:
+        const paymentAmount = passPurchaseMode && passPrice > 0 ? passPrice : 300;
+        const paymentLabel = passPurchaseMode ? 'Bérlet vásárlás' : 'Foglalási díj';
         return (
           <div className="space-y-6 h-full flex flex-col">
             <div className="flex-shrink-0">
@@ -1643,12 +1848,17 @@ export default function ReservationSystem() {
                         const newCount = secretClickCount + 1;
                         setSecretClickCount(newCount);
                         if (newCount >= 5) {
-                          handleSecretPaymentBypass();
+                          if (passPurchaseMode) {
+                            handlePassPurchaseBypass();
+                          } else {
+                            handleSecretPaymentBypass();
+                          }
                         }
                       }}
                     />
-                    <p className="text-lg">Kérjük kattintson a "Fizetés" gombra a folytatáshoz</p>
-                    <p className="text-gray-600">A fizetés egy új ablakban nyílik meg</p>
+                    <p className="text-lg font-semibold">{paymentLabel}: {paymentAmount.toLocaleString()} Ft</p>
+                    <p className="text-gray-600">Kérjük kattintson a "Fizetés" gombra a folytatáshoz</p>
+                    <p className="text-gray-500 text-sm">A fizetés egy új ablakban nyílik meg</p>
                   </>
                 )}
               </div>
@@ -1684,7 +1894,13 @@ export default function ReservationSystem() {
                   <div>
                     <h4 className="font-medium text-gray-700 mb-2">Szolgáltatás</h4>
                     <p className="text-gray-900">{formData.service?.name}</p>
-                    <p className="text-gray-600 text-sm">{formData.service?.price.toLocaleString()} Ft</p>
+                    {selectedPass ? (
+                      <p className="text-green-600 text-sm font-medium">Bérlet igénybevételével</p>
+                    ) : passPurchaseMode ? (
+                      <p className="text-blue-600 text-sm font-medium">Bérlet vásárlás ({passPrice.toLocaleString()} Ft)</p>
+                    ) : (
+                      <p className="text-gray-600 text-sm">{formData.service?.price.toLocaleString()} Ft</p>
+                    )}
                   </div>
                   <div className="md:col-span-2">
                     <h4 className="font-medium text-gray-700 mb-2">Személyes adatok</h4>

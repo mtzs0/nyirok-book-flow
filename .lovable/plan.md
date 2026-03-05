@@ -1,89 +1,75 @@
 
 
-## Plan: Pass System Integration into Reservation Flow
+## Add Appointment Rescheduling Flow
 
 ### Overview
-Integrate the pass system into the reservation flow. Returning users get their passes checked; all users see pass purchase options. Using a pass skips payment; buying a pass changes the payment amount.
+Add a new initial step (step 0) where users choose between booking a new appointment or modifying an existing one. The modification flow uses a completely different set of steps.
 
-### Changes Required
+### How It Works
 
-#### 1. Update Service interface and data loading
-- Extend `Service` interface with pass fields: `pass_enabled`, `pass_total_treatments`, `pass_paid_treatments`, `pass_expiry_days`, `pass_price_override`
-- Add `Pass` interface: `id`, `email`, `service_id`, `total_treatments`, `used_treatments`, `expiry_date`, `status`
-- The existing `loadServices()` already does `select('*')` so pass columns will be included automatically
+The component will track a `mode` state: `'new'` (default booking) or `'modify'` (rescheduling).
 
-#### 2. New state variables
-- `userPasses`: array of active passes fetched for the returning user's email
-- `selectedPass`: the pass being used (or null)
-- `passPurchaseMode`: boolean -- true if user is buying a new pass instead of a single booking
-- `passPrice`: calculated pass price for the selected service (for display and payment)
+**Step 0 - Mode Selection** (new first step for both flows):
+Two large buttons: "Idopontfoglalas" and "Meglevo idopont modositasa"
 
-#### 3. Load passes for returning users
-- When a returning user provides their email and continues, query `nyirok_passes` where `email = modifyEmail` AND `status = 'active'` AND `expiry_date > now()`
-- Store results in `userPasses` state
+**New Booking flow** (unchanged, steps shift by 1):
+0 -> 1(Nyilatkozat) -> 2(Helyszin) -> 3(Datum) -> 4(Idopont) -> 5(Terapeuta) -> 6(Szolgaltatas) -> 7(Adatok) -> 8(Foglalas) -> 9(Osszegzes)
 
-#### 4. Modify "Szolgaltatás" step (case 6 in new booking flow)
-For each service card, after the existing service info, add:
-- **If user has an active pass for this service** (matching `service_id`, `used_treatments < total_treatments`):
-  - Green button: "Bérlet igénybevétele"
-  - Text: "Jelenleg X alkalmat tud még bérlettel igénybe venni" (X = total_treatments - used_treatments)
-  - Clicking sets `selectedPass` and `formData.service`, then the flow continues
-- **If user has no pass (or is new user)** and `pass_enabled` is true for the service:
-  - Blue button: "X alkalmas bérlet vásárlása" (X = pass_total_treatments)
-  - Price shown: if `pass_price_override > 0` use that, else `pass_paid_treatments * service.price`
-  - Clicking sets `passPurchaseMode = true` and `formData.service`
+**Modify flow** (completely different steps):
+0 -> 1(Felhasznalo) -> 2(Idopontok) -> 3(Foglalas details) -> 4(Datum) -> 5(Idopont) -> 6(Terapeuta) -> 7(Veglegesittes)
 
-Users can still select a service normally (single booking without pass) by clicking the service card itself.
+### Technical Details
 
-#### 5. Skip payment step when using existing pass
-- In `handleNext()`: if `selectedPass` is set and current step is 7 (Adatok), skip step 8 (Foglalás) and jump to step 9 (Összegzés)
-- In step 9 summary: if `selectedPass`, show "Bérlet igénybevételével" instead of the price
+**New state variables:**
+- `mode`: `'new' | 'modify' | null` - tracks which flow the user chose
+- `modifyEmail`: string - email entered in Felhasznalo step
+- `existingReservations`: array - future reservations found for that email
+- `selectedReservation`: object - the reservation the user clicked to modify
 
-#### 6. Modify payment step for pass purchase
-- In step 8 (Foglalás): if `passPurchaseMode`, show the pass price instead of the normal 300 Ft booking fee
-- The 5-click secret bypass should still work for pass purchases
-- Modify `handlePayment` to pass a `passPrice` field to the `create-payment` edge function when in pass purchase mode
-- Modify `handleSecretPaymentBypass` to handle pass purchase mode
+**New step definitions:**
+- Define `MODIFY_STEPS` array with: Felhasznalo, Idopontok, Foglalas, Datum, Idopont, Terapeuta, Veglegesittes
+- When `mode === 'modify'`, use `MODIFY_STEPS` for the progress bar and navigation
 
-#### 7. Update `create-payment` edge function
-- Accept optional `passPrice` in the request body
-- When present, use `passPrice` instead of the fixed 300 HUF booking fee
-- Update product name/description to indicate it's a pass purchase
+**Step 0 - Mode Selection:**
+- Two styled buttons, no "Tovabb" needed - clicking a button sets the mode and advances
 
-#### 8. Save pass data after successful payment/booking
+**Step 1 (modify) - Felhasznalo:**
+- Single email input field
+- "Tovabb" enabled when email is non-empty
 
-**When buying a new pass (after successful payment):**
-- Insert into `nyirok_passes`: email, name, service_id, total_treatments (from service), used_treatments = 1 (first use), purchase_date = now, expiry_date (calculated from pass_expiry_days or year 3000), status = 'active', invoice_id = ''
-- Insert into `nyirok_pass_uses`: pass_id, reservation_id, time = now
-- This happens in `handleSecretPaymentBypass` and in `verify-payment` edge function
+**Step 2 (modify) - Idopontok:**
+- On entering this step, query `nyirok_reservations` where `email = modifyEmail` and `date >= today`
+- Display results in a scrollable list showing: date / time / therapist / service
+- "Tovabb" button is disabled; clicking a reservation selects it and auto-advances
 
-**When using an existing pass:**
-- After creating the reservation (in the summary/submit step), increment `used_treatments` on the pass
-- If used_treatments equals total_treatments, set status to 'used'  
-- Insert into `nyirok_pass_uses`: pass_id, reservation_id, time = now
-- Since `nyirok_passes` UPDATE is admin-only via RLS, we need an edge function
+**Step 3 (modify) - Foglalas:**
+- Display selected reservation details: Datum, Idopont, Szolgaltatas, Terapeuta, Helyszin
+- "Tovabb" button labeled "Foglalas modositasa"
 
-#### 9. New edge function: `use-pass`
-Accepts: `passId`, `reservationData` (same format as normal booking), `isNewPass` (boolean), `newPassData` (optional, for new pass creation)
+**Steps 4-6 (modify) - Datum, Idopont, Terapeuta:**
+- Reuse existing rendering logic for date/time/therapist selection
+- Location is pulled from the selected reservation (looked up from `nyirok_locations` by name)
+- Expert filtering uses the original reservation's therapist expert status (no Nyilatkozat step in modify flow, so all therapists at that location are shown)
+- The `formData.statements` will default to the "none apply" option so `requiresExpert()` returns false, showing all therapists
 
-Logic:
-- Creates the reservation in `nyirok_reservations`
-- If `isNewPass`: creates the pass row in `nyirok_passes`, then creates `nyirok_pass_uses` entry
-- If existing pass: updates `used_treatments += 1`, updates status to 'used' if equal to total, creates `nyirok_pass_uses` entry
-- Uses service role key to bypass RLS
-- Returns reservation ID and pass data
+**Step 7 (modify) - Veglegesittes:**
+- Shows old vs new details (date, time, therapist)
+- "Veglegesittes" button updates the existing `nyirok_reservations` row (by reservation id) setting new `date`, `time`, `therapist`, and `therapist_link` columns
 
-#### 10. Update `verify-payment` edge function
-- Accept optional `passPurchaseData` in reservationData
-- When present, after creating the reservation, also create the pass in `nyirok_passes` and log in `nyirok_pass_uses`
+**RLS consideration:**
+- The `nyirok_reservations` table currently only allows admin to UPDATE. We need a new RLS policy to allow public updates on specific columns, restricted by matching the reservation id. Since anonymous users need to update, we will add a permissive UPDATE policy that allows updating `date`, `time`, `therapist`, and `therapist_link` columns.
+- Actually, RLS policies cannot restrict by column in Postgres. Instead, we will use the service role via an Edge Function to perform the update securely, OR we add a simple permissive RLS policy for UPDATE. Given the current architecture (no auth for public users), the safest approach is to create a small Edge Function `update-reservation` that accepts reservation ID + new date/time/therapist data and performs the update using the service role key.
 
-### Files to Create/Modify
-1. **`src/components/ReservationSystem.tsx`** -- Major: new state, pass loading, service step UI changes, flow skip logic, summary changes, pass submission logic
-2. **`supabase/functions/use-pass/index.ts`** -- New: handles pass usage (both new and existing) with reservation creation
-3. **`supabase/functions/create-payment/index.ts`** -- Minor: accept dynamic price for pass purchases
-4. **`supabase/functions/verify-payment/index.ts`** -- Minor: handle pass creation after successful pass payment
-5. **`supabase/config.toml`** -- Add `use-pass` function config with `verify_jwt = false`
+### Database Changes
+- Create a new Edge Function `update-reservation` that:
+  - Accepts: `reservationId`, `date`, `time`, `therapist` (name), `therapist_link` (UUID)
+  - Updates the matching row in `nyirok_reservations` using the service role
+  - Returns success/failure
 
-### No database changes needed
-All required tables and columns already exist from the previous migration.
+### Files to Modify
+1. **`src/components/ReservationSystem.tsx`** - Major changes: add mode selection step, modify flow state, new step renderers, modify-specific navigation logic
+2. **`supabase/functions/update-reservation/index.ts`** - New Edge Function for secure reservation updates
+
+### No database migration needed
+The existing `nyirok_reservations` table already has all required columns. We just need the Edge Function to bypass RLS for the update.
 
