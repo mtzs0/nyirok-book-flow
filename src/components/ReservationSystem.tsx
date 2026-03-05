@@ -460,6 +460,11 @@ export default function ReservationSystem() {
         setCurrentStep(prev => prev + 1);
       }
     } else {
+      // If using existing pass and on step 7 (Adatok), skip step 8 (payment) -> go to 9
+      if (selectedPass && currentStep === 7) {
+        handlePassUseSubmit();
+        return;
+      }
       if (currentStep < 8) {
         setCurrentStep(prev => prev + 1);
       }
