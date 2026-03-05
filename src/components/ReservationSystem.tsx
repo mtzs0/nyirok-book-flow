@@ -28,6 +28,21 @@ interface Service {
   price: number;
   time: number;
   time_end: number;
+  pass_enabled: boolean;
+  pass_total_treatments: number;
+  pass_paid_treatments: number;
+  pass_expiry_days: number;
+  pass_price_override: number;
+}
+
+interface Pass {
+  id: string;
+  email: string;
+  service_id: string;
+  total_treatments: number;
+  used_treatments: number;
+  expiry_date: string;
+  status: string;
 }
 
 interface Reservation {
