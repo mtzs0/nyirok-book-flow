@@ -411,6 +411,10 @@ export default function ReservationSystem() {
 
   const handleReturningEmailContinue = () => {
     setReturningSubStep('choose');
+    // Load passes for returning user
+    if (modifyEmail.trim()) {
+      loadUserPasses(modifyEmail.trim());
+    }
   };
 
   const handleReturningActionChoice = (action: 'new' | 'modify') => {
