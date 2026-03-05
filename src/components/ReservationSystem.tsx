@@ -705,6 +705,74 @@ export default function ReservationSystem() {
     }
   };
 
+  // Handle using an existing pass (skips payment)
+  const handlePassUseSubmit = async () => {
+    if (!formData.therapist || !formData.service || !formData.location || !selectedPass) return;
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('use-pass', {
+        body: {
+          passId: selectedPass.id,
+          reservationData: formData,
+          isNewPass: false,
+        }
+      });
+      if (error) throw error;
+      if (!data?.success) throw new Error('Failed to use pass');
+
+      setReservationId(data.reservationId);
+      setFormData(prev => ({ ...prev, paymentStatus: 'paid' }));
+      setCurrentStep(9);
+    } catch (error) {
+      console.error('Pass use error:', error);
+      toast({ title: "Hiba", description: "Hiba történt a bérlet felhasználásakor.", variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle pass purchase via secret bypass (5 clicks)
+  const handlePassPurchaseBypass = async () => {
+    if (!formData.therapist || !formData.service || !formData.location) return;
+    if (bypassInProgressRef.current) return;
+    bypassInProgressRef.current = true;
+    setLoading(true);
+    try {
+      const service = formData.service;
+      const expiryDate = service.pass_expiry_days > 0
+        ? new Date(Date.now() + service.pass_expiry_days * 86400000).toISOString()
+        : '3000-01-01T00:00:00.000Z';
+
+      const { data, error } = await supabase.functions.invoke('use-pass', {
+        body: {
+          reservationData: formData,
+          isNewPass: true,
+          newPassData: {
+            email: formData.personalData.email,
+            name: formData.personalData.fullName,
+            service_id: service.id,
+            total_treatments: service.pass_total_treatments,
+            expiry_date: expiryDate,
+            invoice_id: '',
+          },
+        }
+      });
+      if (error) throw error;
+      if (!data?.success) throw new Error('Failed to create pass');
+
+      setReservationId(data.reservationId);
+      setFormData(prev => ({ ...prev, paymentStatus: 'paid' }));
+      setCurrentStep(9);
+    } catch (error) {
+      console.error('Pass purchase bypass error:', error);
+      toast({ title: "Hiba", description: "Hiba történt a bérlet vásárlásakor.", variant: "destructive" });
+    } finally {
+      setLoading(false);
+      setSecretClickCount(0);
+      bypassInProgressRef.current = false;
+    }
+  };
+
   const handleSubmit = async () => {
     if (!formData.therapist || !formData.service || !formData.location) return;
     
@@ -801,6 +869,10 @@ export default function ReservationSystem() {
     setModifyEmail('');
     setExistingReservations([]);
     setSelectedReservation(null);
+    setUserPasses([]);
+    setSelectedPass(null);
+    setPassPurchaseMode(false);
+    setPassPrice(0);
   };
 
   // Calendar helpers
