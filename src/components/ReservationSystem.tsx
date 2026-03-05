@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Calendar, Clock, MapPin, User, Stethoscope, CreditCard, CheckCircle, ChevronRight, ChevronLeft, Mail, Phone, Edit, CalendarPlus } from 'lucide-react';
+import { Calendar, Clock, MapPin, User, Stethoscope, CreditCard, CheckCircle, ChevronRight, ChevronLeft, Mail, Phone, Edit, CalendarPlus, UserPlus, UserCheck } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from '@/hooks/use-toast';
@@ -97,18 +97,31 @@ const STEPS = [
 ];
 
 const MODIFY_STEPS = [
-  { id: 1, title: "Felhasználó", icon: Mail },
-  { id: 2, title: "Időpontok", icon: Calendar },
-  { id: 3, title: "Foglalás", icon: CheckCircle },
-  { id: 4, title: "Dátum", icon: Calendar },
-  { id: 5, title: "Időpont", icon: Clock },
-  { id: 6, title: "Terapeuta", icon: User },
-  { id: 7, title: "Véglegesítés", icon: CheckCircle }
+  { id: 1, title: "Időpontok", icon: Calendar },
+  { id: 2, title: "Foglalás", icon: CheckCircle },
+  { id: 3, title: "Dátum", icon: Calendar },
+  { id: 4, title: "Időpont", icon: Clock },
+  { id: 5, title: "Terapeuta", icon: User },
+  { id: 6, title: "Véglegesítés", icon: CheckCircle }
 ];
 
+const DEFAULT_PERSONAL_DATA = {
+  fullName: '',
+  email: '',
+  phone: '',
+  iranyitoszam: '',
+  varos: '',
+  utca: '',
+  birthday: '',
+};
+
 export default function ReservationSystem() {
+  // Flow control states
+  const [userType, setUserType] = useState<'new' | 'returning' | null>(null);
+  const [returningSubStep, setReturningSubStep] = useState<'email' | 'choose' | null>(null);
   const [mode, setMode] = useState<'new' | 'modify' | null>(null);
-  const [currentStep, setCurrentStep] = useState(0); // 0 = mode selection
+  const [currentStep, setCurrentStep] = useState(0);
+
   const [formData, setFormData] = useState<FormData>({
     statements: [],
     location: null,
@@ -116,16 +129,8 @@ export default function ReservationSystem() {
     time: '',
     therapist: null,
     service: null,
-    personalData: {
-      fullName: '',
-      email: '',
-      phone: '',
-      iranyitoszam: '',
-      varos: '',
-      utca: '',
-      birthday: '',
-    },
-     paymentStatus: 'pending',
+    personalData: { ...DEFAULT_PERSONAL_DATA },
+    paymentStatus: 'pending',
   });
 
   // Modify flow state
@@ -148,6 +153,7 @@ export default function ReservationSystem() {
 
   const activeSteps = mode === 'modify' ? MODIFY_STEPS : STEPS;
   const totalSteps = activeSteps.length;
+  const isReturningUser = userType === 'returning';
 
   // Load initial data
   useEffect(() => {
@@ -198,14 +204,12 @@ export default function ReservationSystem() {
 
   // Set location from selected reservation in modify mode
   useEffect(() => {
-    if (mode === 'modify' && selectedReservation && currentStep >= 4) {
-      // Find the location object matching the reservation's location name
+    if (mode === 'modify' && selectedReservation && currentStep >= 3) {
       const matchingLocation = locations.find(l => l.name === selectedReservation.location);
       if (matchingLocation && formData.location?.id !== matchingLocation.id) {
         setFormData(prev => ({ 
           ...prev, 
           location: matchingLocation,
-          // In modify mode, don't require expert - show all therapists
           statements: ["A fentiek közül egyik sem érvényes rám nézve"]
         }));
       }
@@ -338,29 +342,68 @@ export default function ReservationSystem() {
     }
   };
 
-  const handleModeSelect = (selectedMode: 'new' | 'modify') => {
-    setMode(selectedMode);
+  // Flow handlers
+  const handleUserTypeSelect = (type: 'new' | 'returning') => {
+    setUserType(type);
+    if (type === 'new') {
+      setMode('new');
+      setCurrentStep(1);
+      setFormData({
+        statements: [],
+        location: null,
+        date: '',
+        time: '',
+        therapist: null,
+        service: null,
+        personalData: { ...DEFAULT_PERSONAL_DATA },
+        paymentStatus: 'pending',
+      });
+    } else {
+      setReturningSubStep('email');
+    }
+  };
+
+  const handleReturningEmailContinue = () => {
+    setReturningSubStep('choose');
+  };
+
+  const handleReturningActionChoice = (action: 'new' | 'modify') => {
+    setMode(action);
+    setReturningSubStep(null);
     setCurrentStep(1);
-    // Reset form data when switching modes
-    setFormData({
-      statements: selectedMode === 'modify' ? ["A fentiek közül egyik sem érvényes rám nézve"] : [],
-      location: null,
-      date: '',
-      time: '',
-      therapist: null,
-      service: null,
-      personalData: { fullName: '', email: '', phone: '', iranyitoszam: '', varos: '', utca: '', birthday: '' },
-      paymentStatus: 'pending',
-    });
-    setModifyEmail('');
-    setExistingReservations([]);
-    setSelectedReservation(null);
+    
+    if (action === 'new') {
+      setFormData({
+        statements: [],
+        location: null,
+        date: '',
+        time: '',
+        therapist: null,
+        service: null,
+        personalData: { ...DEFAULT_PERSONAL_DATA, email: modifyEmail },
+        paymentStatus: 'pending',
+      });
+    } else {
+      setFormData({
+        statements: ["A fentiek közül egyik sem érvényes rám nézve"],
+        location: null,
+        date: '',
+        time: '',
+        therapist: null,
+        service: null,
+        personalData: { ...DEFAULT_PERSONAL_DATA },
+        paymentStatus: 'pending',
+      });
+      setExistingReservations([]);
+      setSelectedReservation(null);
+      loadExistingReservations();
+    }
   };
 
   const handleNext = () => {
     if (mode === 'modify') {
-      if (currentStep === 2) {
-        // Idopontok step - user must click a reservation, not use Tovabb
+      if (currentStep === 1) {
+        // Időpontok step - user must click a reservation, not use Tovább
         return;
       }
       if (currentStep < totalSteps) {
@@ -374,10 +417,30 @@ export default function ReservationSystem() {
   };
 
   const handleBack = () => {
+    // Handle step 0 sub-phases for returning users
+    if (currentStep === 0) {
+      if (returningSubStep === 'choose') {
+        setReturningSubStep('email');
+      } else if (returningSubStep === 'email') {
+        setUserType(null);
+        setReturningSubStep(null);
+        setModifyEmail('');
+      }
+      return;
+    }
+
     if (currentStep === 1) {
-      // Go back to mode selection
-      setMode(null);
-      setCurrentStep(0);
+      if (isReturningUser) {
+        // Go back to action choice
+        setMode(null);
+        setCurrentStep(0);
+        setReturningSubStep('choose');
+      } else {
+        // Go back to user type selection
+        setMode(null);
+        setCurrentStep(0);
+        setUserType(null);
+      }
     } else {
       setCurrentStep(prev => prev - 1);
     }
@@ -386,13 +449,12 @@ export default function ReservationSystem() {
   const canProceed = () => {
     if (mode === 'modify') {
       switch (currentStep) {
-        case 1: return modifyEmail.trim() !== '';
-        case 2: return false; // Must click a reservation
-        case 3: return selectedReservation !== null;
-        case 4: return formData.date !== '';
-        case 5: return formData.time !== '';
-        case 6: return formData.therapist !== null;
-        case 7: return true;
+        case 1: return false; // Must click a reservation
+        case 2: return selectedReservation !== null;
+        case 3: return formData.date !== '';
+        case 4: return formData.time !== '';
+        case 5: return formData.therapist !== null;
+        case 6: return true;
         default: return false;
       }
     }
@@ -674,16 +736,19 @@ export default function ReservationSystem() {
       time: '',
       therapist: null,
       service: null,
-      personalData: { fullName: '', email: '', phone: '', iranyitoszam: '', varos: '', utca: '', birthday: '' },
+      personalData: { ...DEFAULT_PERSONAL_DATA },
       paymentStatus: 'pending',
     });
     setMode(null);
+    setUserType(null);
+    setReturningSubStep(null);
     setCurrentStep(0);
     setModifyEmail('');
     setExistingReservations([]);
     setSelectedReservation(null);
   };
 
+  // Calendar helpers
   const getDaysInMonth = (date: Date) => {
     return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
   };
@@ -813,7 +878,7 @@ export default function ReservationSystem() {
   };
 
   const renderProgressBar = () => {
-    if (currentStep === 0) return null; // No progress bar on mode selection
+    if (currentStep === 0) return null;
 
     const steps = activeSteps;
     const progress = (currentStep / steps.length) * 100;
@@ -862,12 +927,75 @@ export default function ReservationSystem() {
     );
   };
 
-  const renderModeSelection = () => {
+  // Step 0 renderers
+  const renderUserTypeSelection = () => {
     return (
       <div className="space-y-6 h-full flex flex-col items-center justify-center">
         <div className="flex flex-col gap-4 w-full max-w-md">
           <button
-            onClick={() => handleModeSelect('new')}
+            onClick={() => handleUserTypeSelect('new')}
+            className="p-6 border-2 border-gray-200 rounded-xl hover:border-green-600 hover:bg-green-50 transition-colors flex items-center space-x-4"
+          >
+            <UserPlus className="text-green-600 flex-shrink-0" size={32} />
+            <div className="text-left">
+              <h3 className="text-lg font-semibold text-gray-800">Új felhasználó vagyok</h3>
+              <p className="text-gray-600 text-sm">Első alkalommal foglalok időpontot</p>
+            </div>
+          </button>
+          <button
+            onClick={() => handleUserTypeSelect('returning')}
+            className="p-6 border-2 border-gray-200 rounded-xl hover:border-green-600 hover:bg-green-50 transition-colors flex items-center space-x-4"
+          >
+            <UserCheck className="text-green-600 flex-shrink-0" size={32} />
+            <div className="text-left">
+              <h3 className="text-lg font-semibold text-gray-800">Visszatérő felhasználó vagyok</h3>
+              <p className="text-gray-600 text-sm">Már foglaltam korábban időpontot</p>
+            </div>
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  const renderReturningEmail = () => {
+    return (
+      <div className="space-y-6 h-full flex flex-col">
+        <div className="flex-shrink-0">
+          <h2 className="text-2xl font-bold text-gray-800 mb-2">Azonosítás</h2>
+          <p className="text-gray-600">Kérjük adja meg az e-mail címét, amellyel korábban foglalt</p>
+        </div>
+        <div className="flex-1 min-h-0 flex items-start justify-center pt-8">
+          <div className="w-full max-w-md">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              E-mail cím *
+            </label>
+            <div className="relative">
+              <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
+              <input
+                type="email"
+                className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                placeholder="pelda@email.hu"
+                value={modifyEmail}
+                onChange={(e) => setModifyEmail(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && modifyEmail.trim()) {
+                    handleReturningEmailContinue();
+                  }
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderReturningActionChoice = () => {
+    return (
+      <div className="space-y-6 h-full flex flex-col items-center justify-center">
+        <div className="flex flex-col gap-4 w-full max-w-md">
+          <button
+            onClick={() => handleReturningActionChoice('new')}
             className="p-6 border-2 border-gray-200 rounded-xl hover:border-green-600 hover:bg-green-50 transition-colors flex items-center space-x-4"
           >
             <CalendarPlus className="text-green-600 flex-shrink-0" size={32} />
@@ -877,7 +1005,7 @@ export default function ReservationSystem() {
             </div>
           </button>
           <button
-            onClick={() => handleModeSelect('modify')}
+            onClick={() => handleReturningActionChoice('modify')}
             className="p-6 border-2 border-gray-200 rounded-xl hover:border-green-600 hover:bg-green-50 transition-colors flex items-center space-x-4"
           >
             <Edit className="text-green-600 flex-shrink-0" size={32} />
@@ -893,40 +1021,7 @@ export default function ReservationSystem() {
 
   const renderModifyStep = () => {
     switch (currentStep) {
-      case 1: // Felhasználó - email input
-        return (
-          <div className="space-y-6 h-full flex flex-col">
-            <div className="flex-shrink-0">
-              <h2 className="text-2xl font-bold text-gray-800 mb-2">Felhasználó</h2>
-              <p className="text-gray-600">Kérjük adja meg az e-mail címét, amellyel a foglalást létrehozta</p>
-            </div>
-            <div className="flex-1 min-h-0 flex items-start justify-center pt-8">
-              <div className="w-full max-w-md">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  E-mail cím *
-                </label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
-                  <input
-                    type="email"
-                    className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                    placeholder="pelda@email.hu"
-                    value={modifyEmail}
-                    onChange={(e) => setModifyEmail(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && modifyEmail.trim()) {
-                        loadExistingReservations();
-                        setCurrentStep(2);
-                      }
-                    }}
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-        );
-
-      case 2: // Időpontok - list future reservations
+      case 1: // Időpontok - list future reservations
         return (
           <div className="space-y-4 h-full flex flex-col">
             <div className="flex-shrink-0">
@@ -951,7 +1046,7 @@ export default function ReservationSystem() {
                         className="p-4 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-green-600 hover:bg-green-50 transition-colors"
                         onClick={() => {
                           setSelectedReservation(res);
-                          setCurrentStep(3);
+                          setCurrentStep(2);
                         }}
                       >
                         <div className="flex items-center justify-between">
@@ -977,16 +1072,16 @@ export default function ReservationSystem() {
           </div>
         );
 
-      case 3: // Foglalás - display selected reservation details
+      case 2: // Foglalás details
         return (
           <div className="space-y-6 h-full flex flex-col">
             <div className="flex-shrink-0">
-              <h2 className="text-2xl font-bold text-gray-800 mb-2">Foglalt időpont adatai</h2>
-              <p className="text-gray-600">Az alábbi foglalást kívánja módosítani</p>
+              <h2 className="text-2xl font-bold text-gray-800 mb-2">Foglalás részletei</h2>
+              <p className="text-gray-600">A kiválasztott foglalás adatai</p>
             </div>
             <div className="flex-1 min-h-0">
               {selectedReservation && (
-                <div className="bg-gray-50 rounded-xl p-6 space-y-4">
+                <div className="bg-gray-50 rounded-xl p-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <h4 className="font-medium text-gray-700 mb-1">Dátum</h4>
@@ -1015,7 +1110,7 @@ export default function ReservationSystem() {
           </div>
         );
 
-      case 4: // Dátum
+      case 3: // Dátum
         return (
           <div className="space-y-6 h-full flex flex-col">
             <div className="flex-shrink-0">
@@ -1028,7 +1123,7 @@ export default function ReservationSystem() {
           </div>
         );
 
-      case 5: // Időpont
+      case 4: // Időpont
         return (
           <div className="space-y-6 h-full flex flex-col">
             <div className="flex-shrink-0">
@@ -1062,8 +1157,8 @@ export default function ReservationSystem() {
           </div>
         );
 
-      case 6: // Terapeuta
-        const availableTherapists = getAvailableTherapistsForTimeSlot();
+      case 5: // Terapeuta
+        const modifyAvailableTherapists = getAvailableTherapistsForTimeSlot();
         return (
           <div className="space-y-6 h-full flex flex-col">
             <div className="flex-shrink-0">
@@ -1073,7 +1168,7 @@ export default function ReservationSystem() {
             <div className="flex-1 min-h-0">
               <ScrollArea className="h-full">
                 <div className="space-y-4 pr-4">
-                  {availableTherapists.map((therapist) => (
+                  {modifyAvailableTherapists.map((therapist) => (
                     <div
                       key={therapist.id}
                       className={`p-4 border rounded-lg cursor-pointer transition-colors ${formData.therapist?.id === therapist.id ? 'border-green-600 bg-green-50' : 'border-gray-200 bg-white hover:border-gray-300'}`}
@@ -1104,7 +1199,7 @@ export default function ReservationSystem() {
           </div>
         );
 
-      case 7: // Véglegesítés
+      case 6: // Véglegesítés
         return (
           <div className="space-y-6 h-full flex flex-col">
             <div className="flex-shrink-0">
@@ -1166,10 +1261,23 @@ export default function ReservationSystem() {
   };
 
   const renderStep = () => {
-    if (currentStep === 0) return renderModeSelection();
+    // Step 0 - handle different sub-phases
+    if (currentStep === 0) {
+      if (userType === null) {
+        return renderUserTypeSelection();
+      }
+      if (userType === 'returning' && returningSubStep === 'email') {
+        return renderReturningEmail();
+      }
+      if (userType === 'returning' && returningSubStep === 'choose') {
+        return renderReturningActionChoice();
+      }
+      return renderUserTypeSelection();
+    }
+
     if (mode === 'modify') return renderModifyStep();
 
-    // New booking flow (same as before)
+    // New booking flow
     switch (currentStep) {
       case 1:
         return (
@@ -1597,17 +1705,16 @@ export default function ReservationSystem() {
 
   // Determine button labels and behavior
   const getNextButtonLabel = () => {
-    if (mode === 'modify' && currentStep === 3) return 'Foglalás módosítása';
-    if (mode === 'modify' && currentStep === 7) return 'Véglegesítés';
+    if (mode === 'modify' && currentStep === 2) return 'Foglalás módosítása';
+    if (mode === 'modify' && currentStep === 6) return 'Véglegesítés';
+    if (currentStep === 0 && returningSubStep === 'email') return 'Tovább';
     return 'Tovább';
   };
 
   const handleNextAction = () => {
-    if (mode === 'modify' && currentStep === 1) {
-      // Load reservations when going from email step
-      loadExistingReservations();
-      setCurrentStep(2);
-    } else if (mode === 'modify' && currentStep === 7) {
+    if (currentStep === 0 && returningSubStep === 'email') {
+      handleReturningEmailContinue();
+    } else if (mode === 'modify' && currentStep === 6) {
       handleModifySubmit();
     } else {
       handleNext();
@@ -1615,7 +1722,7 @@ export default function ReservationSystem() {
   };
 
   const isLastStep = () => {
-    if (mode === 'modify') return currentStep === 7;
+    if (mode === 'modify') return currentStep === 6;
     return currentStep === 9;
   };
 
@@ -1623,17 +1730,20 @@ export default function ReservationSystem() {
     return mode === 'new' && currentStep === 8;
   };
 
+  // Determine if bottom nav should show
+  const showBottomNav = currentStep > 0 || (currentStep === 0 && returningSubStep !== null);
+
   return (
     <div className="w-full bg-white">
       <div className="max-w-4xl mx-auto p-6 bg-white">
         <div className="bg-white p-8 rounded-lg shadow-sm border border-gray-200" style={{ height: '900px' }}>
           {renderProgressBar()}
           
-          <div className="bg-white" style={{ height: currentStep === 0 ? '700px' : '537px' }}>
+          <div className="bg-white" style={{ height: (currentStep === 0) ? '700px' : '537px' }}>
             {renderStep()}
           </div>
           
-          {currentStep > 0 && (
+          {showBottomNav && (
             <div className="flex justify-between mt-8 pt-6 border-t border-gray-200 bg-white">
               <button
                 onClick={handleBack}
@@ -1654,7 +1764,7 @@ export default function ReservationSystem() {
                 </button>
               ) : (mode === 'new' && isLastStep()) ? (
                 null
-              ) : (mode === 'modify' && currentStep === 7) ? (
+              ) : (mode === 'modify' && currentStep === 6) ? (
                 <button
                   onClick={handleModifySubmit}
                   disabled={loading}
@@ -1663,16 +1773,26 @@ export default function ReservationSystem() {
                   <span>{loading ? 'Feldolgozás...' : 'Véglegesítés'}</span>
                   <CheckCircle size={20} />
                 </button>
-              ) : (mode === 'modify' && currentStep === 2) ? (
-                // Idopontok step - no Tovabb button, user must click a reservation
+              ) : (mode === 'modify' && currentStep === 1) ? (
+                // Időpontok step - no Tovább button, user must click a reservation
                 null
+              ) : (currentStep === 0 && returningSubStep === 'choose') ? (
+                // Action choice - no Tovább, user clicks a button
+                null
+              ) : (currentStep === 0 && returningSubStep === 'email') ? (
+                <button
+                  onClick={handleReturningEmailContinue}
+                  disabled={!modifyEmail.trim()}
+                  className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <span>Tovább</span>
+                  <ChevronRight size={20} />
+                </button>
               ) : (
                 <button
                   onClick={handleNextAction}
                   disabled={!canProceed() || loading}
-                  className={`px-6 py-2 text-white rounded-lg transition-colors flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed ${
-                    mode === 'modify' && currentStep === 7 ? 'bg-green-600 hover:bg-green-700' : 'bg-green-600 hover:bg-green-700'
-                  }`}
+                  className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <span>{loading ? 'Feldolgozás...' : getNextButtonLabel()}</span>
                   <ChevronRight size={20} />
