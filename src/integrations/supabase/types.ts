@@ -317,6 +317,95 @@ export type Database = {
         }
         Relationships: []
       }
+      nyirok_pass_uses: {
+        Row: {
+          id: string
+          pass_id: string
+          reservation_id: string
+          time: string
+        }
+        Insert: {
+          id?: string
+          pass_id: string
+          reservation_id: string
+          time?: string
+        }
+        Update: {
+          id?: string
+          pass_id?: string
+          reservation_id?: string
+          time?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nyirok_pass_uses_pass_id_fkey"
+            columns: ["pass_id"]
+            isOneToOne: false
+            referencedRelation: "nyirok_passes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nyirok_pass_uses_reservation_id_fkey"
+            columns: ["reservation_id"]
+            isOneToOne: false
+            referencedRelation: "nyirok_reservations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      nyirok_passes: {
+        Row: {
+          created_at: string
+          email: string
+          expiry_date: string
+          id: string
+          invoice_id: string | null
+          name: string
+          purchase_date: string
+          service_id: string
+          status: string
+          total_treatments: number
+          updated_at: string
+          used_treatments: number
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          expiry_date: string
+          id?: string
+          invoice_id?: string | null
+          name: string
+          purchase_date?: string
+          service_id: string
+          status?: string
+          total_treatments: number
+          updated_at?: string
+          used_treatments?: number
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          expiry_date?: string
+          id?: string
+          invoice_id?: string | null
+          name?: string
+          purchase_date?: string
+          service_id?: string
+          status?: string
+          total_treatments?: number
+          updated_at?: string
+          used_treatments?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nyirok_passes_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "nyirok_services"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       nyirok_personnel: {
         Row: {
           calendar_id: string | null
@@ -455,6 +544,11 @@ export type Database = {
           id: string
           key: string
           name: string
+          pass_enabled: boolean
+          pass_expiry_days: number
+          pass_paid_treatments: number
+          pass_price_override: number
+          pass_total_treatments: number
           price: number
           time: number
           time_end: number | null
@@ -467,6 +561,11 @@ export type Database = {
           id?: string
           key: string
           name: string
+          pass_enabled?: boolean
+          pass_expiry_days?: number
+          pass_paid_treatments?: number
+          pass_price_override?: number
+          pass_total_treatments?: number
           price: number
           time: number
           time_end?: number | null
@@ -479,6 +578,11 @@ export type Database = {
           id?: string
           key?: string
           name?: string
+          pass_enabled?: boolean
+          pass_expiry_days?: number
+          pass_paid_treatments?: number
+          pass_price_override?: number
+          pass_total_treatments?: number
           price?: number
           time?: number
           time_end?: number | null
