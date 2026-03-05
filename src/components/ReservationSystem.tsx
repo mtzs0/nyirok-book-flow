@@ -166,6 +166,12 @@ export default function ReservationSystem() {
   const [secretClickCount, setSecretClickCount] = useState(0);
   const isMobile = useIsMobile();
 
+  // Pass system state
+  const [userPasses, setUserPasses] = useState<Pass[]>([]);
+  const [selectedPass, setSelectedPass] = useState<Pass | null>(null);
+  const [passPurchaseMode, setPassPurchaseMode] = useState(false);
+  const [passPrice, setPassPrice] = useState(0);
+
   const activeSteps = mode === 'modify' ? MODIFY_STEPS : STEPS;
   const totalSteps = activeSteps.length;
   const isReturningUser = userType === 'returning';
