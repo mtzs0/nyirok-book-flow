@@ -171,6 +171,7 @@ export default function ReservationSystem() {
   const [selectedPass, setSelectedPass] = useState<Pass | null>(null);
   const [passPurchaseMode, setPassPurchaseMode] = useState(false);
   const [passPrice, setPassPrice] = useState(0);
+  const [modifySuccess, setModifySuccess] = useState(false);
 
   const activeSteps = mode === 'modify' ? MODIFY_STEPS : STEPS;
   const totalSteps = activeSteps.length;
@@ -879,11 +880,7 @@ export default function ReservationSystem() {
       if (error) throw error;
       if (!data?.success) throw new Error(data?.error || 'Update failed');
 
-      toast({
-        title: "Sikeres módosítás",
-        description: "Az időpont sikeresen módosítva!",
-      });
-      resetForm();
+      setModifySuccess(true);
     } catch (error) {
       console.error('Modify error:', error);
       toast({
@@ -2005,6 +2002,19 @@ export default function ReservationSystem() {
 
   // Determine if bottom nav should show
   const showBottomNav = currentStep > 0 || (currentStep === 0 && returningSubStep !== null);
+
+  if (modifySuccess) {
+    return (
+      <div className="w-full bg-white">
+        <div className="max-w-4xl mx-auto p-6 bg-white">
+          <div className="bg-white p-8 rounded-lg shadow-sm border border-gray-200 flex flex-col items-center justify-center" style={{ height: '900px' }}>
+            <CheckCircle className="text-green-500" size={120} strokeWidth={1.5} />
+            <h2 className="text-3xl font-bold text-gray-800 mt-6">Sikeres módosítás</h2>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full bg-white">
