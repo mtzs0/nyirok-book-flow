@@ -1209,31 +1209,49 @@ export default function ReservationSystem() {
               ) : (
                 <ScrollArea className="h-full">
                   <div className="space-y-3 pr-4">
-                    {existingReservations.map((res) => (
-                      <div
-                        key={res.id}
-                        className="p-4 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-green-600 hover:bg-green-50 transition-colors"
-                        onClick={() => {
-                          setSelectedReservation(res);
-                          setCurrentStep(2);
-                        }}
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-4">
-                            <Calendar className="text-green-600 flex-shrink-0" size={20} />
-                            <div>
-                              <p className="font-semibold text-gray-800">
-                                {res.date} / {res.time}
-                              </p>
-                              <p className="text-gray-600 text-sm">
-                                {res.therapist} / {res.service}
-                              </p>
+                    {existingReservations.map((res) => {
+                      const resDateTime = new Date(`${res.date}T${res.time}:00`);
+                      const now = new Date();
+                      const hoursUntil = (resDateTime.getTime() - now.getTime()) / (1000 * 60 * 60);
+                      const isWithin24h = hoursUntil >= 0 && hoursUntil < 24;
+
+                      return (
+                        <div
+                          key={res.id}
+                          className={`p-4 border-2 rounded-lg transition-colors ${
+                            isWithin24h
+                              ? 'border-gray-200 bg-gray-100 opacity-60 cursor-not-allowed'
+                              : 'border-gray-200 cursor-pointer hover:border-green-600 hover:bg-green-50'
+                          }`}
+                          onClick={() => {
+                            if (!isWithin24h) {
+                              setSelectedReservation(res);
+                              setCurrentStep(2);
+                            }
+                          }}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-4">
+                              <Calendar className={`flex-shrink-0 ${isWithin24h ? 'text-gray-400' : 'text-green-600'}`} size={20} />
+                              <div>
+                                <p className={`font-semibold ${isWithin24h ? 'text-gray-400' : 'text-gray-800'}`}>
+                                  {res.date} / {res.time}
+                                </p>
+                                <p className={`text-sm ${isWithin24h ? 'text-gray-400' : 'text-gray-600'}`}>
+                                  {res.therapist} / {res.service}
+                                </p>
+                                {isWithin24h && (
+                                  <p className="text-red-500 text-xs mt-1 font-medium">
+                                    A foglalás 24 órán belül már nem módosítható.
+                                  </p>
+                                )}
+                              </div>
                             </div>
+                            {!isWithin24h && <ChevronRight className="text-gray-400" size={20} />}
                           </div>
-                          <ChevronRight className="text-gray-400" size={20} />
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </ScrollArea>
               )}
