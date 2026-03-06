@@ -1653,25 +1653,39 @@ export default function ReservationSystem() {
                             <div className="mt-3 flex flex-wrap items-center gap-2">
                               {existingPass ? (
                                 <>
-                                  <button
-                                    className="px-3 py-1.5 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setSelectedPass(existingPass);
-                                      setPassPurchaseMode(false);
-                                      setPassPrice(0);
-                                      setFormData(prev => ({ ...prev, service }));
-                                    }}
-                                  >
-                                    Bérlet igénybevétele
-                                  </button>
+                                  {(() => {
+                                    const isPassSelected = selectedPass?.id === existingPass.id && formData.service?.id === service.id;
+                                    return (
+                                      <button
+                                        className={`px-3 py-1.5 text-sm rounded-lg transition-colors flex items-center gap-1.5 ${
+                                          isPassSelected
+                                            ? 'bg-green-700 text-white ring-2 ring-green-400'
+                                            : 'bg-green-600 text-white hover:bg-green-700'
+                                        }`}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          if (isPassSelected) {
+                                            setSelectedPass(null);
+                                          } else {
+                                            setSelectedPass(existingPass);
+                                            setPassPurchaseMode(false);
+                                            setPassPrice(0);
+                                            setFormData(prev => ({ ...prev, service }));
+                                          }
+                                        }}
+                                      >
+                                        {isPassSelected && <CheckCircle size={14} />}
+                                        Bérlet igénybevétele
+                                      </button>
+                                    );
+                                  })()}
                                   <span className="text-green-700 text-sm">
                                     Jelenleg {existingPass.total_treatments - existingPass.used_treatments} alkalmat tud még bérlettel igénybe venni
                                   </span>
                                 </>
                               ) : null}
                               
-                              {service.pass_enabled && (() => {
+                              {service.pass_enabled && !existingPass && (() => {
                                 const isSelected = passPurchaseMode && formData.service?.id === service.id && !selectedPass;
                                 return (
                                   <>
@@ -1932,9 +1946,15 @@ export default function ReservationSystem() {
                     <h4 className="font-medium text-gray-700 mb-2">Szolgáltatás</h4>
                     <p className="text-gray-900">{formData.service?.name}</p>
                     {selectedPass ? (
-                      <p className="text-green-600 text-sm font-medium">Bérlet igénybevételével</p>
-                    ) : passPurchaseMode ? (
-                      <p className="text-blue-600 text-sm font-medium">Bérlet vásárlás ({passPrice.toLocaleString()} Ft)</p>
+                      <>
+                        <p className="text-green-600 text-sm font-medium">Bérlet igénybevételével</p>
+                        <p className="text-green-600 text-xs">({selectedPass.total_treatments - selectedPass.used_treatments - 1}/{selectedPass.total_treatments} alkalom maradt)</p>
+                      </>
+                    ) : passPurchaseMode && formData.service ? (
+                      <>
+                        <p className="text-blue-600 text-sm font-medium">Bérlet vásárlás ({passPrice.toLocaleString()} Ft)</p>
+                        <p className="text-blue-600 text-xs">({formData.service.pass_total_treatments - 1}/{formData.service.pass_total_treatments} alkalom maradt)</p>
+                      </>
                     ) : (
                       <p className="text-gray-600 text-sm">{formData.service?.price.toLocaleString()} Ft</p>
                     )}
