@@ -417,12 +417,36 @@ export default function ReservationSystem() {
     }
   };
 
-  const handleReturningActionChoice = (action: 'new' | 'modify') => {
+  const loadReturningUserData = async (email: string) => {
+    const { data, error } = await supabase
+      .from('nyirok_reservations')
+      .select('name, email, phone, iranyitoszam, varos, utca, birthday')
+      .eq('email', email)
+      .order('created_at', { ascending: false })
+      .limit(1);
+    
+    if (data && data.length > 0 && !error) {
+      const latest = data[0];
+      return {
+        fullName: latest.name || '',
+        email: latest.email || email,
+        phone: latest.phone || '',
+        iranyitoszam: latest.iranyitoszam || '',
+        varos: latest.varos || '',
+        utca: latest.utca || '',
+        birthday: latest.birthday || '',
+      };
+    }
+    return { ...DEFAULT_PERSONAL_DATA, email };
+  };
+
+  const handleReturningActionChoice = async (action: 'new' | 'modify') => {
     setMode(action);
     setReturningSubStep(null);
     setCurrentStep(1);
     
     if (action === 'new') {
+      const prefilledData = await loadReturningUserData(modifyEmail.trim());
       setFormData({
         statements: [],
         location: null,
@@ -430,7 +454,7 @@ export default function ReservationSystem() {
         time: '',
         therapist: null,
         service: null,
-        personalData: { ...DEFAULT_PERSONAL_DATA, email: modifyEmail },
+        personalData: prefilledData,
         paymentStatus: 'pending',
       });
     } else {
@@ -1647,25 +1671,38 @@ export default function ReservationSystem() {
                                 </>
                               ) : null}
                               
-                              {service.pass_enabled && (
-                                <>
-                                  <button
-                                    className="px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setSelectedPass(null);
-                                      setPassPurchaseMode(true);
-                                      setPassPrice(pPrice);
-                                      setFormData(prev => ({ ...prev, service }));
-                                    }}
-                                  >
-                                    {service.pass_total_treatments} alkalmas bérlet vásárlása
-                                  </button>
-                                  <span className="text-blue-700 text-sm font-medium">
-                                    {pPrice.toLocaleString()} Ft
-                                  </span>
-                                </>
-                              )}
+                              {service.pass_enabled && (() => {
+                                const isSelected = passPurchaseMode && formData.service?.id === service.id && !selectedPass;
+                                return (
+                                  <>
+                                    <button
+                                      className={`px-3 py-1.5 text-sm rounded-lg transition-colors flex items-center gap-1.5 ${
+                                        isSelected
+                                          ? 'bg-blue-700 text-white ring-2 ring-blue-400'
+                                          : 'bg-blue-600 text-white hover:bg-blue-700'
+                                      }`}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (isSelected) {
+                                          setPassPurchaseMode(false);
+                                          setPassPrice(0);
+                                        } else {
+                                          setSelectedPass(null);
+                                          setPassPurchaseMode(true);
+                                          setPassPrice(pPrice);
+                                          setFormData(prev => ({ ...prev, service }));
+                                        }
+                                      }}
+                                    >
+                                      {isSelected && <CheckCircle size={14} />}
+                                      {service.pass_total_treatments} alkalmas bérlet vásárlása
+                                    </button>
+                                    <span className="text-blue-700 text-sm font-medium">
+                                      {pPrice.toLocaleString()} Ft
+                                    </span>
+                                  </>
+                                );
+                              })()}
                             </div>
                           </div>
                         </div>
