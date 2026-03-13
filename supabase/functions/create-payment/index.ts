@@ -31,7 +31,7 @@ serve(async (req) => {
 
     // Use passPrice if provided (pass purchase), otherwise fixed booking fee
     const isPassPurchase = !!passPrice && passPrice > 0;
-    const BOOKING_FEE_HUF = isPassPurchase ? passPrice : 300;
+    const BOOKING_FEE_HUF = isPassPurchase ? passPrice : 5000;
     
     const priceInMinorUnits = BOOKING_FEE_HUF * 100;
     
