@@ -1890,7 +1890,7 @@ export default function ReservationSystem() {
         );
 
       case 8:
-        const paymentAmount = passPurchaseMode && passPrice > 0 ? passPrice : 300;
+        const paymentAmount = passPurchaseMode && passPrice > 0 ? passPrice : 5000;
         const paymentLabel = passPurchaseMode ? 'Bérlet vásárlás' : 'Foglalási díj';
         return (
           <div className="space-y-6 h-full flex flex-col">
